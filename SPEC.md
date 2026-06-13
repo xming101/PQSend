@@ -7,7 +7,9 @@ experimental, non-normative, incomplete, and unstable. There is no compatibility
 promise before `v1.0.0`, and implementations must fail closed on unknown or
 malformed input.
 
-No encryption or package serialization is implemented in the repository.
+No encryption or package serialization is implemented in the repository. The
+experimental local contact book described below is implemented, but it is not
+part of a `.pqsend` package format.
 
 ## Product boundary
 
@@ -22,6 +24,59 @@ must not manually compose low-level cryptographic primitives.
 The `v0.1` scope is exactly one file encrypted for one recipient. Folder
 support, multiple recipients, signatures, password mode, GUI, relay server, and
 chat are out of scope.
+
+## Experimental local contact book
+
+PQSend stores contacts in `contacts.toml` below an OS-appropriate local config
+directory. Approximate default directories are:
+
+| Platform | Config directory |
+| --- | --- |
+| Linux | `~/.config/pqsend/` |
+| macOS | `~/Library/Application Support/pqsend/` |
+| Windows | `%APPDATA%\pqsend\` |
+
+The contact store format is experimental and unstable. It contains a format
+marker and a list of contacts. Each contact contains a case-sensitive local
+name, normalized public key text, fingerprint, and local verified boolean. A
+representative record is:
+
+```toml
+format = "experimental-v0"
+
+[[contacts]]
+name = "Alice"
+public_key = "opaque public key text"
+fingerprint = "ABCD EFGH ..."
+verified = false
+```
+
+Public keys are opaque UTF-8 text. The contact book does not validate a
+cryptographic key format and does not generate keys or sender identities. On
+import, PQSend:
+
+1. reads the selected file as UTF-8 text
+2. converts CRLF and CR line endings to LF
+3. trims leading and trailing whitespace
+4. rejects the result if it is empty
+5. otherwise preserves the internal text
+
+The fingerprint is SHA-256 over the UTF-8 bytes of the normalized public key
+text. It is displayed as stable uppercase hexadecimal in four-character
+groups. This fingerprint is only a contact identifier. SHA-256 fingerprinting
+is not encryption, and the fingerprint does not prove control of a key or a
+person's identity.
+
+Contact names contain 1 to 64 ASCII letters, numbers, `_`, `-`, or `.`
+characters. Names must not start with `.`, contain `..`, separators,
+whitespace, control characters, or other characters. Names are matched exactly
+and case-sensitively. Duplicate names are rejected; contact replacement is not
+implemented.
+
+`pqsend init` creates the directory and contact store without overwriting an
+existing store. `pqsend contact verify` changes only the local `verified`
+boolean. It is a deliberate manual trust flag, not automated verification,
+trust-on-first-use, a signature, or a certificate.
 
 ## Goals
 

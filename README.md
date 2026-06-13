@@ -37,24 +37,26 @@ tests, and threat-model update.
 
 ## Current status
 
-The repository currently contains the `v0.0.1` project skeleton:
+The repository currently contains the `v0.0.1` project skeleton plus an
+experimental local contact book:
 
 - a Rust workspace with `pqsend-core` and `pqsend-cli`
-- stub CLI commands that describe the intended user experience
+- working `init` and `contact` CLI commands
+- stub package commands that describe the intended package user experience
 - early, non-normative design and security documentation
 
 There is no encryption, package creation, package extraction, networking, GUI,
-password mode, signing, relay service, chat, or post-quantum protection.
+password mode, signing, relay service, chat, sender identity, key generation, or
+post-quantum protection.
 
 The `v0.1` milestone is deliberately narrow: encrypt and decrypt one file for
 one recipient using a reviewed existing backend and a draft `.pqsend` package.
 Folder support, multiple recipients, signatures, password mode, GUI, relay
 server, and chat are out of scope until later milestones.
 
-## Intended command shape
+## Contact book
 
-This is the intended longer-term command shape, not a committed `v0.1`
-interface:
+The implemented local contact commands are:
 
 ```text
 pqsend init
@@ -62,13 +64,35 @@ pqsend contact add <name> <public_key_file>
 pqsend contact list
 pqsend contact fingerprint <name>
 pqsend contact verify <name>
+```
+
+`pqsend init` creates an experimental `contacts.toml` store below the
+OS-appropriate config directory, approximately:
+
+- Linux: `~/.config/pqsend/`
+- macOS: `~/Library/Application Support/pqsend/`
+- Windows: `%APPDATA%\pqsend\`
+
+Public keys are treated as opaque UTF-8 text. PQSend normalizes line endings,
+trims leading and trailing whitespace, and calculates an uppercase grouped
+SHA-256 fingerprint over the normalized text. SHA-256 is used only for contact
+identification here; it is not encryption. `contact verify` only flips a local
+manual trust flag and does not prove identity or perform trust-on-first-use.
+Contact names are exact and case-sensitive.
+
+The contact store format is experimental and may change without migration
+support. It is local plaintext state, so protect it using normal operating
+system account and filesystem controls.
+
+## Intended package commands
+
+These longer-term package commands remain stubs:
+
+```text
 pqsend pack <input-file> --to <contact>
 pqsend open <package> --out <directory>
 pqsend inspect <package>
 ```
-
-All commands are currently stubs that exit successfully after printing a clear
-message.
 
 ## Development
 

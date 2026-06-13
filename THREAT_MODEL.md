@@ -3,8 +3,9 @@
 ## Status and scope
 
 PQSend is experimental and must not be used for sensitive real-world data yet.
-The current code does not encrypt, package, or extract files, so the protections
-below are design goals, not claims about a working product.
+The current code implements only a local experimental contact book. It does not
+encrypt, package, or extract files, so the package protections below are design
+goals, not claims about a working product.
 
 The `v0.1` threat model covers one file encrypted locally for one recipient and
 opened locally from a portable `.pqsend` package. There is no required server.
@@ -23,6 +24,7 @@ server, and chat are out of scope.
 
 - sender and recipient devices are trusted while PQSend operates
 - users protect local accounts, backups, and private key material
+- users protect the plaintext local contact store against unauthorized changes
 - users verify contact fingerprints through an independent trusted channel
 - the selected existing encryption backend and dependencies work as documented
 - the operating system random source and filesystem protections work correctly
@@ -67,6 +69,25 @@ PQSend is not intended to protect against:
 Encryption does not prove who authored a package, that it was delivered, or
 that an endpoint was uncompromised. Signatures and receipts must not blur these
 distinctions if they are introduced later.
+
+## Contact trust limitations
+
+Contact public keys are currently stored as opaque normalized UTF-8 text in an
+experimental local plaintext TOML file. The store includes a SHA-256 fingerprint
+over that normalized text and a manual `verified` boolean.
+
+The fingerprint helps users compare the same key text through an independent
+trusted channel. It is not encryption, a signature, a certificate, or proof of
+identity. Marking a contact verified records only a local user decision. PQSend
+does not currently perform automated verification, trust-on-first-use,
+cryptographic key validation, key replacement, key generation, or sender
+identity management.
+
+An attacker or local process able to modify the contact store can replace
+public key text, fingerprints, or verification flags. PQSend relies on normal
+operating system account and filesystem protections for this local state.
+Contact commands reject a symbolic-link `contacts.toml`, but this is not a
+defense against a compromised local account or endpoint.
 
 ## Metadata limitations
 
