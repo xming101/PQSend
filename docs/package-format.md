@@ -1,58 +1,95 @@
-# Package Format Notes
+# `.pqsend` v0.1 Package Format
 
-`SPEC.md` defines the current draft `.pqsend` `v0.1` package concept. The format
-is experimental and unstable before `v1.0.0`; these notes explain the design
-rationale and remaining choices without defining a separate format.
+The experimental `v0.1` format is a strict binary container for one file
+encrypted to one age X25519 recipient. It has one 20-byte public envelope
+followed by exactly one complete binary age v1 file. It is not extensible:
+unknown values, malformed lengths, and trailing bytes are rejected.
 
-## `v0.1` boundary
+All integers are unsigned big-endian. Every arithmetic operation and integer
+conversion is checked.
 
-- one portable package file
-- one encrypted input file
-- one recipient
-- local creation and opening
-- no telemetry or required server
-- no folders, multiple recipients, signatures, password mode, GUI, relay, or
-  chat
+## Complete outer layout
 
-## Privacy boundary
+| Offset | Size | Bytes or range | Meaning |
+| ---: | ---: | --- | --- |
+| 0 | 8 | `89 50 51 53 45 4E 44 0A` | magic `\x89PQSEND\n` |
+| 8 | 2 | `00 01` | format version 1 |
+| 10 | 1 | `01` | single-file mode |
+| 11 | 1 | `01` | binary age v1 with one X25519 recipient |
+| 12 | 8 | `00 00 00 00 00 00 00 01` through the encoded maximum | encrypted payload byte length |
+| 20 | declared length | binary age data | exactly one complete encrypted payload |
+| EOF | 0 | none | trailing bytes forbidden |
 
-The public envelope may identify the format, format version, implementation
-version, package mode, backend, and encrypted payload location. It must not
-contain a plaintext filename, folder path, note, message, or recipient display
-name by default.
+The public envelope is always exactly 20 bytes. It deliberately includes no
+flags, reserved bytes, header length, implementation version, timestamp,
+extensions, recipient name or key, sender identity, note, filename, path, or
+file hash.
 
-The authenticated encrypted payload contains the internal manifest and file
-body. The manifest carries the original filename, file size, file hash, an
-optional justified creation timestamp, and a reserved future note field.
+Opening rejects a package shorter than 20 bytes, bad magic, version zero,
+unknown versions/modes/backends, zero or excessive encrypted lengths, any
+outer-length mismatch, trailing bytes, and age authentication or mode failure.
 
-Backend-required public recipient material, approximate package size, transfer
-timing, and transport metadata cannot necessarily be hidden.
+## Complete inner layout
 
-## Backend boundary
+The binary age plaintext is one canonical byte string:
 
-The implemented core-only experimental backend adapter uses binary age v1 with
-one X25519 recipient. It does not define custom cryptography. The adapter is not
-yet embedded in a `.pqsend` package, and the package backend identifier,
-framing, migration behavior, and downgrade handling remain to be specified.
+| Offset | Size | Bytes or range | Meaning |
+| ---: | ---: | --- | --- |
+| 0 | 8 | `50 51 53 49 4E 4E 45 52` | ASCII `PQSINNER` |
+| 8 | 2 | `00 01` | authenticated version, equal to public version |
+| 10 | 1 | `01` | authenticated mode, equal to public mode |
+| 11 | 1 | `01` | authenticated backend, equal to public backend |
+| 12 | 2 | `00 01` through `00 FF` | filename byte length |
+| 14 | 8 | zero through `67,108,864` | file body byte length |
+| 22 | 32 | raw bytes | SHA-256 of the exact file body |
+| 54 | filename length | canonical UTF-8 | original filename only |
+| after filename | file size | raw bytes | exact file body |
+| EOF | 0 | none | trailing inner bytes forbidden |
 
-## Parser and extraction boundary
+The complete encrypted plaintext is authenticated before inner fields are
+trusted. The inner version, mode, and backend must match the public envelope.
+The declared filename and file sizes must produce exactly the authenticated
+plaintext length. The SHA-256 value is encrypted consistency metadata, not an
+authentication mechanism.
 
-- authenticate encrypted data before trusting the manifest or writing output
-- use strict parsing, explicit resource limits, and fail-closed behavior
-- treat the decrypted filename as untrusted and reject path-like values
-- prevent path traversal and platform-specific path confusion
-- never overwrite an existing file without explicit confirmation
+## Filename rejection
 
-## Undecided
+Filenames are accepted only as UTF-8 byte strings of 1 through 255 bytes.
+PQSend rejects rather than sanitizes `.`, `..`, separators, NUL, ASCII control
+characters including DEL, Windows-forbidden characters `< > : " | ? *`,
+trailing dots, trailing spaces, and Windows reserved device stems.
 
-- concrete package backend identifier registry
-- binary encoding and framing
-- implementation-version inclusion policy
-- recipient-material representation and metadata impact
-- file-hash algorithm and receipt presentation
-- padding and size-hiding policy
-- streaming and resource limits
-- test-vector representation
+Reserved device matching is case-insensitive and covers `CON`, `PRN`, `AUX`,
+`NUL`, `COM1` through `COM9`, `LPT1` through `LPT9`, `COM¹`, `COM²`, `COM³`,
+`LPT¹`, `LPT²`, and `LPT³`, including names with an extension such as
+`con.txt`.
 
-No code should serialize or parse a `.pqsend` package until these choices have
-been reviewed and reflected in `SPEC.md` and `THREAT_MODEL.md`.
+## Exact limits
+
+| Constant | Decimal value |
+| --- | ---: |
+| `FORMAT_VERSION_V1` | 1 |
+| `MODE_SINGLE_FILE` | 1 |
+| `BACKEND_AGE_V1_X25519` | 1 |
+| `PUBLIC_ENVELOPE_LEN` | 20 |
+| `MAX_FILENAME_BYTES` | 255 |
+| `MAX_FILE_BYTES` | 67,108,864 |
+| `MAX_INNER_METADATA_BYTES` | 309 |
+| `MAX_INNER_PLAINTEXT_BYTES` | 67,109,173 |
+| `MAX_ENCRYPTED_PAYLOAD_BYTES` | 68,157,749 |
+| `MAX_PACKAGE_BYTES` | 68,157,769 |
+
+The metadata maximum is `54 + 255`. The inner maximum is `309 + 67,108,864`.
+The package maximum is `20 + 68,157,749`.
+
+## Scope and privacy
+
+The core creates and opens package bytes in memory. It does not accept
+filesystem paths, extract files, overwrite files, integrate contacts, or
+change CLI behavior. Folder entries, multiple recipients, password mode,
+signatures, post-quantum encryption, padding, notes, timestamps, and extension
+fields are absent.
+
+The original filename and SHA-256 value are encrypted. Approximate package size
+and the fact that age/X25519 is used remain visible. Users can independently
+leak the original filename by naming the outer `.pqsend` file after it.
