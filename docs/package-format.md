@@ -30,10 +30,10 @@ timing, and transport metadata cannot necessarily be hidden.
 
 ## Backend boundary
 
-The package layer delegates encryption to an existing, well-known backend such
-as `age` or `rage`; it does not define custom cryptography. A backend identifier
-allows future migration, but migration behavior and downgrade handling must be
-specified before multiple backends are supported.
+The implemented core-only experimental backend adapter uses binary age v1 with
+one X25519 recipient. It does not define custom cryptography. The adapter is not
+yet embedded in a `.pqsend` package, and the package backend identifier,
+framing, migration behavior, and downgrade handling remain to be specified.
 
 ## Parser and extraction boundary
 
@@ -45,7 +45,7 @@ specified before multiple backends are supported.
 
 ## Undecided
 
-- concrete backend and backend identifier registry
+- concrete package backend identifier registry
 - binary encoding and framing
 - implementation-version inclusion policy
 - recipient-material representation and metadata impact

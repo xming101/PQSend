@@ -7,8 +7,10 @@ experimental, non-normative, incomplete, and unstable. There is no compatibility
 promise before `v1.0.0`, and implementations must fail closed on unknown or
 malformed input.
 
-No encryption or package serialization is implemented in the repository. The
-experimental local contact book described below is implemented, but it is not
+The repository implements an experimental core-only binary age v1 adapter for
+one X25519 recipient and one X25519 identity. No `.pqsend` package
+serialization, package CLI integration, or contact-backend integration is
+implemented. The experimental local contact book described below is also not
 part of a `.pqsend` package format.
 
 ## Product boundary
@@ -17,13 +19,22 @@ PQSend is an opinionated encrypted file-sending package layer for humans. It is
 not a new cryptographic construction and does not claim stronger cryptography
 than its backend.
 
-Early versions should delegate recipient encryption and authenticated payload
-protection to an existing, well-known backend such as `age` or `rage`. PQSend
-must not manually compose low-level cryptographic primitives.
+The experimental `v0.1` backend adapter delegates recipient encryption and
+authenticated payload protection to the high-level Rust `age` crate APIs.
+PQSend must not manually compose low-level cryptographic primitives or shell
+out to an external `age` or `rage` executable.
 
-The `v0.1` scope is exactly one file encrypted for one recipient. Folder
-support, multiple recipients, signatures, password mode, GUI, relay server, and
-chat are out of scope.
+The backend adapter is X25519-only and supports exactly one recipient for
+encryption and one identity for decryption. It produces binary age v1 data and
+does not expose plugins, SSH keys, passphrases, ASCII armor, or
+multiple-recipient encryption. Decryption rejects ciphertext headers that do
+not contain exactly one X25519 recipient stanza plus the age format's permitted
+GREASE stanzas. X25519 is not post-quantum-secure.
+
+The `.pqsend` `v0.1` package scope remains exactly one file encrypted for one
+recipient. Folder support, multiple recipients, signatures, password mode, GUI,
+relay server, and chat are out of scope. Package framing remains separate and
+unimplemented.
 
 ## Experimental local contact book
 
@@ -99,9 +110,10 @@ A `v0.1` package conceptually contains:
    - an encrypted internal manifest
    - the single encrypted file body
 
-The exact byte layout, encoding, framing, limits, and backend choice remain
-undecided. The encrypted payload may be embedded, but the public envelope still
-needs an unambiguous payload location or framing rule.
+The exact byte layout, encoding, framing, limits, package backend identifier,
+and integration of the experimental age adapter remain undecided. The encrypted
+payload may be embedded, but the public envelope still needs an unambiguous
+payload location or framing rule.
 
 ## Public envelope
 

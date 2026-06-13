@@ -3,9 +3,10 @@
 ## Status and scope
 
 PQSend is experimental and must not be used for sensitive real-world data yet.
-The current code implements only a local experimental contact book. It does not
-encrypt, package, or extract files, so the package protections below are design
-goals, not claims about a working product.
+The current code implements a local experimental contact book and a core-only
+binary age v1 X25519 backend adapter. It does not create or extract `.pqsend`
+packages or integrate the backend with the CLI or contacts, so package
+protections below are design goals, not claims about a working product.
 
 The `v0.1` threat model covers one file encrypted locally for one recipient and
 opened locally from a portable `.pqsend` package. There is no required server.
@@ -29,9 +30,30 @@ server, and chat are out of scope.
 - the selected existing encryption backend and dependencies work as documented
 - the operating system random source and filesystem protections work correctly
 
-PQSend avoids custom cryptography. Early versions should use a reviewed existing
-backend such as `age` or `rage` rather than manually composing cryptographic
-primitives.
+PQSend avoids custom cryptography. The experimental backend adapter delegates
+all cryptographic operations and binary parsing to Rust `age` APIs rather than
+manually composing cryptographic primitives or shelling out to an external
+executable. It inspects parsed stanza tags through age's public identity policy
+hook only to enforce the supported recipient boundary.
+
+## Experimental age backend boundary
+
+The current adapter encrypts binary age v1 data to exactly one X25519 recipient
+and decrypts with exactly one X25519 identity. It does not expose plugins, SSH
+keys, passphrases, ASCII armor, or multiple-recipient encryption. It is not
+integrated into `.pqsend` packages. Decryption rejects ciphertext headers that
+do not contain exactly one X25519 recipient stanza plus the age format's
+permitted GREASE stanzas.
+
+Encryption completes the authenticated age stream before returning.
+Decryption authenticates all plaintext in memory before returning it, so
+wrong-key, malformed, tampered, truncated, unsupported-mode, and
+multiple-recipient ciphertext does not return plaintext. This buffering has
+unbounded memory use until package-level resource limits are defined.
+
+The adapter's errors are redacted. It distinguishes invalid keys, no matching
+identity, invalid or tampered ciphertext, and I/O failures without exposing key
+material or detailed backend errors.
 
 ## Protected against
 
@@ -63,6 +85,8 @@ PQSend is not intended to protect against:
 - denial of service, package deletion, truncation, or delivery failure
 - bugs or vulnerabilities in PQSend, its encryption backend, or dependencies
 - unknown future cryptographic breaks
+- denial of service through large inputs, including the current adapter's
+  authenticated-plaintext memory buffering
 - post-quantum adversaries until a reviewed future-resistant backend is selected
   and implemented
 
@@ -95,6 +119,10 @@ The package design hides the original filename and future folder structure
 inside the encrypted payload. It does not promise to hide approximate payload
 size, transfer timing, backend-required recipient material, implementation
 fingerprints, or metadata exposed by the transport.
+
+The current binary age adapter exposes that age is in use, the `X25519`
+recipient stanza type, and approximate ciphertext size. X25519 recipient
+stanzas are anonymous, but the current backend is not post-quantum-secure.
 
 ## Security language
 

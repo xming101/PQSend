@@ -68,3 +68,21 @@ fingerprint is a stable local comparison identifier, not encryption or proof of
 identity. Verification is only a deliberate local boolean. The TOML contact
 format and fingerprint approach remain experimental and may change when a
 reviewed encryption backend is selected.
+
+## DD-011: Narrow Rust age X25519 backend adapter
+
+The experimental `v0.1` backend delegates cryptographic operations and parsing
+to the Rust `age` crate. It uses age's public identity policy hook and
+`age-core` stanza types only to enforce the supported recipient boundary. The
+adapter is limited to binary age v1 encryption for exactly one X25519 recipient
+and decryption with exactly one X25519 identity. It does not shell out to `age`
+or `rage`, implement custom cryptography, or expose plugins, SSH keys,
+passphrases, ASCII armor, or multiple-recipient encryption. Decryption rejects
+headers that do not contain exactly one X25519 recipient stanza plus the age
+format's permitted GREASE stanzas, and returns plaintext only after complete
+authentication.
+
+The `age` crate is pre-`1.0`, so the adapter remains experimental. X25519 is not
+post-quantum-secure; future-resistant backend work requires a separate review.
+This decision selects an encryption backend adapter but does not define or
+implement `.pqsend` package framing.
