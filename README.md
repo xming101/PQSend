@@ -19,15 +19,17 @@ package and user-safety layer around established encryption backends:
 
 > [!WARNING]
 > PQSend is experimental, incomplete, and not ready for sensitive real-world
-> data. The repository does not implement encryption yet.
+> data. The repository contains an experimental age backend adapter, but does
+> not implement `.pqsend` package creation or extraction.
 
 ## Security approach
 
-PQSend avoids custom cryptography. Early versions should use an existing,
-well-known encryption backend such as `age` or `rage` rather than manually
-composing cryptographic primitives. Security depends on the selected backend,
-correct implementation, dependency security, contact-key verification, and
-private-key protection.
+PQSend avoids custom cryptography. The experimental `pqsend-core` backend
+adapter uses the Rust `age` crate directly for binary age v1 encryption to one
+X25519 recipient and decryption with one X25519 identity. It does not shell out
+to an external executable. Security depends on the backend, correct
+implementation, dependency security, contact-key verification, and private-key
+protection.
 
 The design is intended to be post-quantum-ready through versioned packages and
 backend agility. That is an evolution goal, not a claim that current or early
@@ -38,16 +40,18 @@ tests, and threat-model update.
 ## Current status
 
 The repository currently contains the `v0.0.1` project skeleton plus an
-experimental local contact book:
+experimental local contact book and age backend adapter:
 
 - a Rust workspace with `pqsend-core` and `pqsend-cli`
 - working `init` and `contact` CLI commands
+- a tested, core-only binary age v1 X25519 encryption/decryption adapter
 - stub package commands that describe the intended package user experience
 - early, non-normative design and security documentation
 
-There is no encryption, package creation, package extraction, networking, GUI,
-password mode, signing, relay service, chat, sender identity, key generation, or
-post-quantum protection.
+There is no `.pqsend` package creation, package extraction, backend CLI
+integration, contact-backend integration, networking, GUI, password mode,
+signing, relay service, chat, sender identity management, or post-quantum
+protection. The current X25519 backend is not post-quantum-secure.
 
 The `v0.1` milestone is deliberately narrow: encrypt and decrypt one file for
 one recipient using a reviewed existing backend and a draft `.pqsend` package.
@@ -93,6 +97,9 @@ pqsend pack <input-file> --to <contact>
 pqsend open <package> --out <directory>
 pqsend inspect <package>
 ```
+
+See [docs/backend-age.md](docs/backend-age.md) for the implemented backend
+boundary and limitations.
 
 ## Development
 

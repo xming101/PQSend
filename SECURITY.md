@@ -3,8 +3,9 @@
 ## Project maturity
 
 PQSend is experimental, incomplete, and not ready for sensitive real-world
-data. The current repository does not implement encryption or package handling,
-and no security guarantees are made for it.
+data. The current repository contains an experimental core-only binary age v1
+X25519 backend adapter, but it does not implement `.pqsend` package handling or
+CLI integration, and no security guarantees are made for it.
 
 Pre-`v1.0.0` package formats and behaviors are unstable. Security claims must be
 based on implemented, tested, and reviewed behavior rather than roadmap goals.
@@ -12,8 +13,8 @@ based on implemented, tested, and reviewed behavior rather than roadmap goals.
 ## Security principles
 
 - Avoid custom cryptography and manual composition of cryptographic primitives.
-- Prefer existing, well-known encryption backends such as `age` or `rage` in
-  early versions.
+- Use the high-level Rust `age` crate APIs for the experimental X25519 backend;
+  do not shell out or compose low-level cryptographic primitives.
 - Keep encryption and decryption local, with no telemetry or required server.
 - Keep public package metadata minimal and filenames inside the encrypted
   internal manifest.
