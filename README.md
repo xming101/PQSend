@@ -1,30 +1,60 @@
 # PQSend
 
-PQSend is a local-first encrypted file package tool. Its goal is to create
-portable `.pqsend` packages that can travel through email, cloud storage, USB,
-messaging apps, or any other untrusted channel while encryption and decryption
-happen locally.
+PQSend is an experimental, local-first encrypted file-sending package layer for
+humans. It is intended to create portable `.pqsend` files that can travel
+through email, cloud storage, USB, messaging apps, or other untrusted channels
+while encryption and decryption happen locally.
+
+PQSend is not trying to provide stronger cryptography than tools such as
+[`age`](https://age-encryption.org/). Its intended value is an opinionated
+package and user-safety layer around established encryption backends:
+
+- a `.pqsend` package format with minimal public metadata
+- an encrypted internal manifest, including the original filename
+- encrypted filenames and, in a later milestone, encrypted folder structure
+- a contact book with explicit verification status
+- human-readable security receipts
+- safe defaults for package creation and extraction
+- local-first operation, no telemetry, and no required server
 
 > [!WARNING]
-> PQSend is an early experimental project. It does not implement encryption yet
-> and must not be used for sensitive real-world data.
+> PQSend is experimental, incomplete, and not ready for sensitive real-world
+> data. The repository does not implement encryption yet.
 
-The project aims to be serious about security while remaining approachable for
-hobbyists and contributors. It will use established, well-reviewed
-cryptographic libraries and formats rather than inventing cryptography.
+## Security approach
+
+PQSend avoids custom cryptography. Early versions should use an existing,
+well-known encryption backend such as `age` or `rage` rather than manually
+composing cryptographic primitives. Security depends on the selected backend,
+correct implementation, dependency security, contact-key verification, and
+private-key protection.
+
+The design is intended to be post-quantum-ready through versioned packages and
+backend agility. That is an evolution goal, not a claim that current or early
+PQSend packages resist cryptographically relevant quantum computers. A future
+hybrid future-resistant backend would require its own review, specification,
+tests, and threat-model update.
 
 ## Current status
 
-This repository currently contains only the initial project skeleton:
+The repository currently contains the `v0.0.1` project skeleton:
 
 - a Rust workspace with `pqsend-core` and `pqsend-cli`
 - stub CLI commands that describe the intended user experience
 - early, non-normative design and security documentation
 
 There is no encryption, package creation, package extraction, networking, GUI,
-password mode, signing, relay service, or post-quantum cryptography.
+password mode, signing, relay service, chat, or post-quantum protection.
+
+The `v0.1` milestone is deliberately narrow: encrypt and decrypt one file for
+one recipient using a reviewed existing backend and a draft `.pqsend` package.
+Folder support, multiple recipients, signatures, password mode, GUI, relay
+server, and chat are out of scope until later milestones.
 
 ## Intended command shape
+
+This is the intended longer-term command shape, not a committed `v0.1`
+interface:
 
 ```text
 pqsend init
@@ -32,7 +62,7 @@ pqsend contact add <name> <public_key_file>
 pqsend contact list
 pqsend contact fingerprint <name>
 pqsend contact verify <name>
-pqsend pack <input> --to <contact>
+pqsend pack <input-file> --to <contact>
 pqsend open <package> --out <directory>
 pqsend inspect <package>
 ```

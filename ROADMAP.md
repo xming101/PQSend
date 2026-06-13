@@ -1,43 +1,89 @@
 # Roadmap
 
 PQSend is being developed in small, reviewable milestones. Milestone boundaries
-are security boundaries: features listed later should not be pulled forward
-without an explicit design review.
+are security boundaries: later features must not be pulled forward without an
+explicit design review and matching updates to `SPEC.md` and `THREAT_MODEL.md`.
 
-## Milestone 0: Repository skeleton
+All pre-`v1.0.0` formats and behaviors are experimental and may change without
+backward compatibility.
+
+## v0.0.1: Repository skeleton
 
 - Rust workspace and stub CLI
-- initial threat model and placeholder specification
-- CI, issue templates, and contributor guidance
+- initial threat model, draft specification, CI, and contributor guidance
 - no encryption or package handling
 
-## Milestone 1: Local identities and contacts
+## v0.1.0: One file, one recipient
 
-- select well-known libraries and a key representation after review
-- local identity initialization
-- contact import, listing, fingerprint display, and explicit verification state
+- select and integrate a reviewed existing backend such as `age` or `rage`
+- create and open one `.pqsend` package containing one file for one recipient
+- accept one explicitly supplied recipient public key; contact workflows follow
+  in `v0.2.0`
+- encrypt the file contents and internal manifest, including the filename
+- expose only the minimal public metadata defined by the draft specification
+- prevent path traversal and implicit overwrite during extraction
+- add package test vectors and security-sensitive tests
+
+Folder support, multiple recipients, signatures, password mode, GUI, relay
+server, and chat are explicitly out of scope for `v0.1`.
+
+## v0.2.0: Contacts, verification, and receipts
+
+- local identity and contact-book workflows
+- contact fingerprint display and explicit verification status
+- human-readable local security receipts
 - tests for filesystem permissions, parsing, and trust-state transitions
 
-## Milestone 2: First experimental package format
+## v0.3.0: Format and parser hardening
 
-- select an established encryption construction and implementation
-- encrypt file contents and private manifest locally
-- hide plaintext filenames
-- minimal public metadata
-- safe extraction with path-traversal and overwrite protections
-- publish test vectors
+- malformed-package, resource-limit, and fuzz testing
+- documented compatibility and migration policy
+- broader cross-platform package test vectors
+- independent review of the package and extraction design
 
-The format remains experimental until it has received independent review.
+## v0.4.0: Folder packages
 
-## Milestone 3: Hardening
+- encrypted folder structure and filenames
+- safe extraction of directory trees
+- duplicate, conflicting, and platform-specific path handling
 
-- malformed-package and fuzz testing
-- resource-limit protections
-- compatibility and migration policy
-- external security review
+## v0.5.0: Multiple recipients
 
-## Deferred
+- packages addressed to multiple independently selected recipients
+- clear receipt and inspection behavior for recipient sets
+- metadata and privacy review for backend recipient material
 
-Post-quantum cryptography, signatures, password mode, GUI, networking, relay
-services, and chat are intentionally outside the early milestones. Each needs a
-separate threat-model and design update before implementation.
+## v0.6.0: Optional authenticity features
+
+- evaluate signatures only after defining their user meaning and failure modes
+- evaluate password mode only after a separate threat-model update
+- keep both features optional and distinct from recipient encryption
+
+## v0.7.0: Optional graphical interface
+
+- GUI built on the reviewed core package and contact behavior
+- preserve safe defaults and explicit confirmation for destructive actions
+- no required server and no telemetry
+
+## v0.8.0: Backend agility and future-resistant evaluation
+
+- document and test backend migration behavior
+- evaluate a reviewed hybrid future-resistant backend
+- claim harvest-now-decrypt-later resistance only if supported by the selected
+  construction and independent review
+
+## v0.9.0: Release candidate
+
+- stabilize the candidate format and user workflows
+- complete external security review and remediate findings
+- publish compatibility, recovery, and operational guidance
+
+## v1.0.0: Stable package layer
+
+- stable `.pqsend` format and compatibility commitment
+- documented security properties and limitations
+- production-readiness decision based on implementation and external review
+
+An optional relay service may be considered after local package workflows are
+mature, but PQSend will not require a server and any server must be unable to
+decrypt file contents. Chat is not planned before `v1.0.0`.
