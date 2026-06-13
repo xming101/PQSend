@@ -2,8 +2,9 @@
 
 The experimental `v0.1` format is a strict binary container for one file
 encrypted to one age X25519 recipient. It has one 20-byte public envelope
-followed by exactly one complete binary age v1 file. It is not extensible:
-unknown values, malformed lengths, and trailing bytes are rejected.
+followed by exactly one complete binary age v1 file. The format is unstable and
+may change incompatibly before `v1.0.0`. It is not extensible: unknown values,
+malformed lengths, and trailing bytes are rejected.
 
 All integers are unsigned big-endian. Every arithmetic operation and integer
 conversion is checked.
@@ -81,6 +82,7 @@ Reserved device matching is case-insensitive and covers `CON`, `PRN`, `AUX`,
 
 The metadata maximum is `54 + 255`. The inner maximum is `309 + 67,108,864`.
 The package maximum is `20 + 68,157,749`.
+The v0.1 file-size limit is 64 MiB (`67,108,864` bytes).
 
 ## Scope and privacy
 
@@ -91,5 +93,6 @@ Folder entries, multiple recipients, password mode, signatures, post-quantum
 encryption, padding, notes, timestamps, and extension fields are absent.
 
 The original filename and SHA-256 value are encrypted. Approximate package size
-and the fact that age/X25519 is used remain visible. Users can independently
-leak the original filename by naming the outer `.pqsend` file after it.
+and the fact that age/X25519 is used remain visible. Users who want to avoid
+filename leakage must not name the outer `.pqsend` package after the original
+file.

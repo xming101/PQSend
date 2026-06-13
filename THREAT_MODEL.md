@@ -2,11 +2,12 @@
 
 ## Status and scope
 
-PQSend is experimental and must not be used for sensitive real-world data yet.
-The current implementation provides strict `.pqsend` `v0.1` package creation
-and opening, a binary age v1 X25519 backend adapter, an explicit-key-file CLI,
-and a separate local experimental contact book. Package behavior is not
-integrated with contacts.
+PQSend `v0.1.0-alpha.1` is experimental, unaudited, and must not be used for
+sensitive real-world data. The current implementation provides strict
+`.pqsend` `v0.1` package creation and opening, a binary age v1 X25519 backend
+adapter, an explicit-key-file CLI, and a separate local experimental contact
+book. Package behavior is not integrated with contacts. The package format is
+unstable and may change incompatibly before `v1.0.0`.
 
 `v0.1` covers one file encrypted locally for exactly one recipient. Folder
 support, multiple recipients, signatures, password mode, post-quantum
@@ -114,7 +115,8 @@ X25519 stanza type. Approximate plaintext size remains inferable.
 
 The original filename is encrypted inside the package, but the transport's
 outer package filename is outside this protection. Naming a package
-`original-name.ext.pqsend` leaks that name.
+`original-name.ext.pqsend` leaks that name. Users who want to avoid filename
+leakage must choose an outer package name unrelated to the original file.
 
 ## Plaintext and resource limitations
 
@@ -125,9 +127,9 @@ the file bytes. The CLI then writes validated plaintext through a temporary file
 in the selected output directory before publishing its final name. A failed
 write removes the temporary path but cannot guarantee erasure of plaintext disk
 blocks. Temporary and in-memory plaintext handling therefore remains a
-limitation even with the 64 MiB file cap. Memory or disk remnants may persist or
-be exposed by endpoint compromise, swapping, crash dumps, filesystem behavior,
-or debugging tools.
+limitation even with the v0.1 64 MiB (`67,108,864` byte) file cap. Memory or
+disk remnants may persist or be exposed by endpoint compromise, swapping, crash
+dumps, filesystem behavior, or debugging tools.
 
 The documented caps bound accepted package sizes but do not guarantee
 resistance to CPU, allocation, or repeated-input denial of service.

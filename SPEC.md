@@ -2,9 +2,11 @@
 
 ## Status
 
-This document defines the experimental `.pqsend` `v0.1` package format. There
-is no compatibility promise before `v1.0.0`. Implementations must fail closed
-on unknown, malformed, non-canonical, or oversized input.
+This document defines the experimental `.pqsend` `v0.1` package format used by
+`v0.1.0-alpha.1`. The package format is unstable before `v1.0.0`; pre-v1
+releases may change it incompatibly and there is no backward-compatibility
+promise. Implementations must fail closed on unknown, malformed,
+non-canonical, or oversized input.
 
 The repository implements this format in `pqsend-core` and exposes it through a
 narrow CLI using explicit age X25519 key files. The CLI does not integrate the
@@ -111,6 +113,8 @@ Reserved device stems remain forbidden when followed by an extension, such as
 | `MAX_ENCRYPTED_PAYLOAD_BYTES` | 68,157,749 | maximum binary age payload |
 | `MAX_PACKAGE_BYTES` | 68,157,769 | envelope plus encrypted payload |
 
+`MAX_FILE_BYTES` is the v0.1 file-size limit: 64 MiB (`67,108,864` bytes).
+
 Package opening validates the public envelope and exact outer length before age
 decryption. After complete age authentication, it validates the complete inner
 plaintext, filename, exact body length, and SHA-256 value before returning a
@@ -153,6 +157,11 @@ The fingerprint is not encryption, a signature, a certificate, or proof of
 identity. Contact names contain 1 to 64 ASCII letters, numbers, `_`, `-`, or
 `.` characters and reject separators, traversal forms, whitespace, controls,
 and duplicates. Contact replacement is not implemented.
+
+The original filename is encrypted inside the package, but an outer `.pqsend`
+filename chosen by the user or transport remains public metadata. Users who
+want to avoid filename leakage must not name the outer package after the
+original file.
 
 ## Compatibility and change policy
 
