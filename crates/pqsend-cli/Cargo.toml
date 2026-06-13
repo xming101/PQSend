@@ -1,0 +1,15 @@
+[package]
+name = "pqsend-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Command-line interface for PQSend"
+
+[[bin]]
+name = "pqsend"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+pqsend-core = { path = "../pqsend-core" }
