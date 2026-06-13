@@ -84,5 +84,31 @@ authentication.
 
 The `age` crate is pre-`1.0`, so the adapter remains experimental. X25519 is not
 post-quantum-secure; future-resistant backend work requires a separate review.
-This decision selects an encryption backend adapter but does not define or
-implement `.pqsend` package framing.
+This decision selects the encryption backend adapter. Package framing is
+defined separately by DD-012.
+
+## DD-012: Strict fixed-width v0.1 package framing
+
+The `v0.1` package uses a fixed 20-byte public envelope and one fixed-order
+encrypted single-file plaintext. Unsigned big-endian fixed-width fields make
+the canonical byte representation and parser boundaries obvious. The format
+does not use serde, JSON, CBOR, MessagePack, archives, or TLV records because
+`v0.1` has no need for a general serialization system or optional fields.
+
+There are no flags or reserved bytes. Reserving unauthenticated extension space
+would add parsing and downgrade ambiguity before a concrete reviewed use
+exists. A future behavior change must use a new reviewed format version.
+
+Only single-file mode and the binary age v1 one-X25519-recipient backend are
+accepted. This keeps the parser and security boundary aligned with implemented
+behavior rather than implying unsupported flexibility.
+
+The 255-byte filename limit, 64 MiB file limit, and derived inner, encrypted,
+and total-package caps bound normal allocation and parsing work. They do not
+eliminate denial-of-service risk, but they replace unbounded package-level
+memory use with a conservative experimental ceiling.
+
+Filenames are rejected rather than sanitized. Sanitization can silently change
+the authenticated name, create collisions, or turn different hostile inputs
+into the same output name. Requiring a canonical safe filename keeps any
+future filesystem extraction decision explicit.

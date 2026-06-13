@@ -5,8 +5,9 @@ its experimental `v0.1` encryption backend. The adapter lives in
 `pqsend-core` and provides only binary age v1 encryption to exactly one X25519
 recipient and decryption with exactly one X25519 identity.
 
-This adapter is separate from the future `.pqsend` package format. It does not
-define package framing, encrypt filenames, integrate contacts, or change CLI
+This adapter is separate from the `.pqsend` package framing layer. The package
+layer calls it to encrypt and authenticate the complete inner plaintext; the
+adapter itself does not define framing, integrate contacts, or change CLI
 behavior.
 
 ## Why the Rust age crate
@@ -59,13 +60,14 @@ error details.
 
 Buffering authenticated plaintext prevents partial plaintext from escaping on
 failure, but it also means decryption memory use grows with plaintext size.
-Callers remain responsible for safely writing the returned plaintext. Resource
-limits and package-level streaming policy remain future work.
+The `v0.1` package layer enforces documented package limits and validates the
+returned inner plaintext before exposing it. Streaming and filesystem
+extraction remain future work.
 
 ## Metadata exposure
 
 Binary age data exposes that the age backend is in use, the recipient stanza
 type (`X25519`), and approximate encrypted payload size. X25519 recipient
 stanzas are anonymous, but transport metadata and approximate size remain
-visible. Future `.pqsend` framing must account for this metadata without
-exposing plaintext filenames.
+visible. The `.pqsend` public envelope also exposes its exact encrypted payload
+length while keeping the original filename inside the encrypted plaintext.

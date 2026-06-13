@@ -3,15 +3,15 @@
 ## Status and scope
 
 PQSend is experimental and must not be used for sensitive real-world data yet.
-The current code implements a local experimental contact book and a core-only
-binary age v1 X25519 backend adapter. It does not create or extract `.pqsend`
-packages or integrate the backend with the CLI or contacts, so package
-protections below are design goals, not claims about a working product.
+The current core implements strict in-memory `.pqsend` `v0.1` package creation
+and opening, a binary age v1 X25519 backend adapter, and a separate local
+experimental contact book. Package behavior is not integrated with the CLI or
+contacts, and no decrypted file is written to disk.
 
-The `v0.1` threat model covers one file encrypted locally for one recipient and
-opened locally from a portable `.pqsend` package. There is no required server.
-Folder support, multiple recipients, signatures, password mode, GUI, relay
-server, and chat are out of scope.
+`v0.1` covers one file encrypted locally for exactly one recipient. Folder
+support, multiple recipients, signatures, password mode, post-quantum
+encryption, GUI, relay server, networking, telemetry, and chat are out of
+scope.
 
 ## Assets
 
@@ -19,128 +19,113 @@ server, and chat are out of scope.
 - local private key material
 - contact public keys and verification status
 - package integrity and intended recipient selection
-- extracted files and the destination filesystem
+- any future extracted files and destination filesystem
 
 ## Trust assumptions
 
 - sender and recipient devices are trusted while PQSend operates
 - users protect local accounts, backups, and private key material
-- users protect the plaintext local contact store against unauthorized changes
-- users verify contact fingerprints through an independent trusted channel
-- the selected existing encryption backend and dependencies work as documented
-- the operating system random source and filesystem protections work correctly
+- users independently verify intended recipient keys
+- the Rust `age` backend, SHA-256 implementation, and dependencies work as
+  documented
+- the operating system random source and memory protections work correctly
 
-PQSend avoids custom cryptography. The experimental backend adapter delegates
-all cryptographic operations and binary parsing to Rust `age` APIs rather than
-manually composing cryptographic primitives or shelling out to an external
-executable. It inspects parsed stanza tags through age's public identity policy
-hook only to enforce the supported recipient boundary.
+PQSend avoids custom cryptography. Recipient encryption, authenticated payload
+protection, binary age parsing, and key handling are delegated to Rust `age`.
+SHA-256 is used only inside the encrypted plaintext to verify agreement between
+authenticated metadata and file bytes.
 
-## Experimental age backend boundary
+## Implemented package boundary
 
-The current adapter encrypts binary age v1 data to exactly one X25519 recipient
-and decrypts with exactly one X25519 identity. It does not expose plugins, SSH
-keys, passphrases, ASCII armor, or multiple-recipient encryption. It is not
-integrated into `.pqsend` packages. Decryption rejects ciphertext headers that
-do not contain exactly one X25519 recipient stanza plus the age format's
-permitted GREASE stanzas.
+The public parser accepts only the fixed 20-byte `v0.1` envelope, single-file
+mode, backend ID 1, a nonzero encrypted length within the documented cap, and
+an exact package length with no trailing bytes.
 
-Encryption completes the authenticated age stream before returning.
-Decryption authenticates all plaintext in memory before returning it, so
-wrong-key, malformed, tampered, truncated, unsupported-mode, and
-multiple-recipient ciphertext does not return plaintext. This buffering has
-unbounded memory use until package-level resource limits are defined.
+The age adapter accepts exactly one X25519 recipient stanza plus permitted
+GREASE stanzas. Decryption authenticates the complete age plaintext in memory
+before returning it to package parsing. Package parsing then validates the
+inner magic, authenticated copies of version/mode/backend, filename safety,
+resource limits, exact body length, absence of trailing bytes, and encrypted
+SHA-256 value before returning any filename or contents.
 
-The adapter's errors are redacted. It distinguishes invalid keys, no matching
-identity, invalid or tampered ciphertext, and I/O failures without exposing key
-material or detailed backend errors.
+Errors are redacted and do not contain decrypted filenames, file contents, key
+material, or detailed backend errors. The core package API accepts and returns
+bytes only; it does not access filesystem paths, extract, or overwrite files.
 
 ## Protected against
 
-When correctly implemented with a suitable authenticated encryption backend,
-the intended design should protect against:
+Within the assumptions above, the implemented core is designed to protect
+against:
 
-- a cloud, email, messaging, or storage provider reading file contents or the
-  original filename from the package
-- a passive network observer reading file contents or the original filename
-  from the package
-- someone stealing the package but not possessing the recipient's private key
-- accidental file tampering or corruption going undetected before extraction
-- path traversal and extraction outside the selected output directory
-- accidental overwrite of an existing file during extraction
-
-If an optional relay server is added later, it must not possess recipient
-private keys and therefore must be unable to decrypt file contents.
+- package holders without the recipient private key reading file contents,
+  the original filename, or the encrypted file hash
+- malformed, wrong-key, tampered, truncated, unsupported-mode, or
+  multiple-recipient age payloads returning partial plaintext
+- malformed public or inner framing being accepted
+- unsafe decrypted filenames, including traversal separators and reserved
+  Windows device names including superscript-digit aliases, being returned as
+  valid package results
+- accidental file-body corruption or metadata/body disagreement going
+  undetected after authentication
 
 ## Not protected against
 
-PQSend is not intended to protect against:
+PQSend does not protect against:
 
-- malware or compromise on the sender or recipient device
-- compromised, copied, or poorly protected private keys
+- malware or compromise on sender or recipient devices
+- compromised, copied, substituted, or poorly protected keys
 - a recipient leaking plaintext after decryption
-- weak, substituted, or unverified contact keys
-- metadata such as approximate package size, transfer time, transport sender,
-  transport recipient, and other information visible outside the package
-- denial of service, package deletion, truncation, or delivery failure
-- bugs or vulnerabilities in PQSend, its encryption backend, or dependencies
+- denial of service, deletion, delivery failure, or all memory-exhaustion
+  attacks
+- bugs or vulnerabilities in PQSend, age, SHA-256, or dependencies
+- transport metadata such as sender, recipient, timing, and transfer size
 - unknown future cryptographic breaks
-- denial of service through large inputs, including the current adapter's
-  authenticated-plaintext memory buffering
-- post-quantum adversaries until a reviewed future-resistant backend is selected
-  and implemented
+- harvest-now-decrypt-later attacks or other post-quantum adversaries
+- leakage caused by users naming the outer `.pqsend` package after the
+  original plaintext file
 
-Encryption does not prove who authored a package, that it was delivered, or
-that an endpoint was uncompromised. Signatures and receipts must not blur these
-distinctions if they are introduced later.
-
-## Contact trust limitations
-
-Contact public keys are currently stored as opaque normalized UTF-8 text in an
-experimental local plaintext TOML file. The store includes a SHA-256 fingerprint
-over that normalized text and a manual `verified` boolean.
-
-The fingerprint helps users compare the same key text through an independent
-trusted channel. It is not encryption, a signature, a certificate, or proof of
-identity. Marking a contact verified records only a local user decision. PQSend
-does not currently perform automated verification, trust-on-first-use,
-cryptographic key validation, key replacement, key generation, or sender
-identity management.
-
-An attacker or local process able to modify the contact store can replace
-public key text, fingerprints, or verification flags. PQSend relies on normal
-operating system account and filesystem protections for this local state.
-Contact commands reject a symbolic-link `contacts.toml`, but this is not a
-defense against a compromised local account or endpoint.
+Encryption does not prove package authorship, delivery, endpoint security, or
+contact identity. Signatures and receipts are not implemented.
 
 ## Metadata limitations
 
-The package design hides the original filename and future folder structure
-inside the encrypted payload. It does not promise to hide approximate payload
-size, transfer timing, backend-required recipient material, implementation
-fingerprints, or metadata exposed by the transport.
+The public envelope reveals that the input is a `.pqsend` `v0.1` single-file
+package using the age v1 X25519 backend and reveals the exact encrypted payload
+and total package sizes. The binary age payload reveals use of age and the
+X25519 stanza type. Approximate plaintext size remains inferable.
 
-The current binary age adapter exposes that age is in use, the `X25519`
-recipient stanza type, and approximate ciphertext size. X25519 recipient
-stanzas are anonymous, but the current backend is not post-quantum-secure.
+The original filename is encrypted inside the package, but the transport's
+outer package filename is outside this protection. Naming a package
+`original-name.ext.pqsend` leaks that name.
 
-## Security language
+## Plaintext and resource limitations
 
-Accurate descriptions include:
+Package creation holds the input file, inner plaintext, encrypted payload, and
+resulting package in memory at different stages. Opening authenticates the
+complete decrypted age plaintext in memory and then returns a validated copy of
+the file bytes. Temporary and in-memory plaintext handling therefore remains a
+limitation even with the 64 MiB file cap. Memory may persist until released or
+be exposed by endpoint compromise, swapping, crash dumps, or debugging tools.
 
-- local-first encryption
-- post-quantum-ready, when describing planned backend agility
-- hybrid future-resistant, only for a reviewed hybrid backend
-- designed to resist harvest-now-decrypt-later attacks, only after such a
-  backend is implemented and reviewed
-- server cannot decrypt file contents, only when the server lacks private keys
-- security depends on correct implementation and private-key protection
+The documented caps bound accepted package sizes but do not guarantee
+resistance to CPU, allocation, or repeated-input denial of service.
 
-Avoid absolute, permanent, or marketing-led security claims. Every claim must
-identify the implemented protection and its assumptions or limitations.
+## Contact trust limitations
 
-## Required review triggers
+The separate contact book stores normalized opaque public-key text, a SHA-256
+comparison fingerprint, and a manual local `verified` boolean in plaintext
+TOML. It is not integrated with package operations. Its fingerprint is not
+encryption, a signature, a certificate, or proof of identity, and the verified
+flag records only a local user decision.
 
-Update this document and `SPEC.md` before changing package behavior, public
-metadata, identity or contact trust, extraction rules, receipts, cryptographic
-dependencies, or any protected/not-protected claim.
+## Security language and review triggers
+
+PQSend may accurately describe the implemented core as local-first,
+single-recipient X25519 package encryption with strict framing. It must not
+claim production readiness, post-quantum security, authorship, delivery proof,
+or absolute protection.
+
+Update this document, `SPEC.md`, package-format documentation, design
+decisions, and security-sensitive tests before changing package behavior,
+public metadata, limits, filename policy, extraction rules, cryptographic
+dependencies, or protected/not-protected claims.

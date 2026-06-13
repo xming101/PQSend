@@ -2,187 +2,137 @@
 
 ## Status
 
-This document defines the draft `.pqsend` `v0.1` package concept. It is
-experimental, non-normative, incomplete, and unstable. There is no compatibility
-promise before `v1.0.0`, and implementations must fail closed on unknown or
-malformed input.
+This document defines the experimental `.pqsend` `v0.1` package format. There
+is no compatibility promise before `v1.0.0`. Implementations must fail closed
+on unknown, malformed, non-canonical, or oversized input.
 
-The repository implements an experimental core-only binary age v1 adapter for
-one X25519 recipient and one X25519 identity. No `.pqsend` package
-serialization, package CLI integration, or contact-backend integration is
-implemented. The experimental local contact book described below is also not
-part of a `.pqsend` package format.
+The repository implements this format in `pqsend-core` only. It does not
+integrate package creation or opening with the CLI or contact book, extract
+files to disk, or implement folders, multiple recipients, signatures, password
+mode, post-quantum encryption, GUI, networking, relay services, telemetry, or
+chat.
 
-## Product boundary
+## Product and cryptographic boundary
 
-PQSend is an opinionated encrypted file-sending package layer for humans. It is
-not a new cryptographic construction and does not claim stronger cryptography
-than its backend.
+PQSend is a package and safety layer, not a new cryptographic construction. The
+`v0.1` package delegates recipient encryption and authenticated payload
+protection to the Rust `age` crate and contains exactly one complete binary age
+v1 encrypted payload for exactly one X25519 recipient. Decryption accepts
+exactly one X25519 recipient stanza plus age-permitted GREASE stanzas.
 
-The experimental `v0.1` backend adapter delegates recipient encryption and
-authenticated payload protection to the high-level Rust `age` crate APIs.
-PQSend must not manually compose low-level cryptographic primitives or shell
-out to an external `age` or `rage` executable.
+X25519 is not post-quantum-secure. SHA-256 inside the encrypted plaintext checks
+that authenticated metadata and file bytes agree; it is not authentication and
+does not replace age authentication.
 
-The backend adapter is X25519-only and supports exactly one recipient for
-encryption and one identity for decryption. It produces binary age v1 data and
-does not expose plugins, SSH keys, passphrases, ASCII armor, or
-multiple-recipient encryption. Decryption rejects ciphertext headers that do
-not contain exactly one X25519 recipient stanza plus the age format's permitted
-GREASE stanzas. X25519 is not post-quantum-secure.
+## Numeric encoding and canonical parsing
 
-The `.pqsend` `v0.1` package scope remains exactly one file encrypted for one
-recipient. Folder support, multiple recipients, signatures, password mode, GUI,
-relay server, and chat are out of scope. Package framing remains separate and
-unimplemented.
+All integers are unsigned big-endian. All fields are fixed width except the
+filename and file body, whose lengths are explicit. There are no flags,
+reserved bytes, extension fields, implementation versions, timestamps, JSON,
+CBOR, MessagePack, serde encoding, TLV records, archives, or optional fields.
 
-## Experimental local contact book
-
-PQSend stores contacts in `contacts.toml` below an OS-appropriate local config
-directory. Approximate default directories are:
-
-| Platform | Config directory |
-| --- | --- |
-| Linux | `~/.config/pqsend/` |
-| macOS | `~/Library/Application Support/pqsend/` |
-| Windows | `%APPDATA%\pqsend\` |
-
-The contact store format is experimental and unstable. It contains a format
-marker and a list of contacts. Each contact contains a case-sensitive local
-name, normalized public key text, fingerprint, and local verified boolean. A
-representative record is:
-
-```toml
-format = "experimental-v0"
-
-[[contacts]]
-name = "Alice"
-public_key = "opaque public key text"
-fingerprint = "ABCD EFGH ..."
-verified = false
-```
-
-Public keys are opaque UTF-8 text. The contact book does not validate a
-cryptographic key format and does not generate keys or sender identities. On
-import, PQSend:
-
-1. reads the selected file as UTF-8 text
-2. converts CRLF and CR line endings to LF
-3. trims leading and trailing whitespace
-4. rejects the result if it is empty
-5. otherwise preserves the internal text
-
-The fingerprint is SHA-256 over the UTF-8 bytes of the normalized public key
-text. It is displayed as stable uppercase hexadecimal in four-character
-groups. This fingerprint is only a contact identifier. SHA-256 fingerprinting
-is not encryption, and the fingerprint does not prove control of a key or a
-person's identity.
-
-Contact names contain 1 to 64 ASCII letters, numbers, `_`, `-`, or `.`
-characters. Names must not start with `.`, contain `..`, separators,
-whitespace, control characters, or other characters. Names are matched exactly
-and case-sensitively. Duplicate names are rejected; contact replacement is not
-implemented.
-
-`pqsend init` creates the directory and contact store without overwriting an
-existing store. `pqsend contact verify` changes only the local `verified`
-boolean. It is a deliberate manual trust flag, not automated verification,
-trust-on-first-use, a signature, or a certificate.
-
-## Goals
-
-A draft `.pqsend` `v0.1` package should:
-
-- be a portable single-file container
-- be created and opened locally without telemetry or a required server
-- encrypt one file's contents and original filename for one recipient
-- expose only the public metadata required to identify and open the package
-- detect accidental corruption or tampering before extraction
-- extract without path traversal or implicit overwrite
-
-## Conceptual package structure
-
-A `v0.1` package conceptually contains:
-
-1. a small public envelope used to identify, parse, and dispatch the package
-2. backend-specific recipient material required to open the encrypted payload
-3. one authenticated encrypted payload containing:
-   - an encrypted internal manifest
-   - the single encrypted file body
-
-The exact byte layout, encoding, framing, limits, package backend identifier,
-and integration of the experimental age adapter remain undecided. The encrypted
-payload may be embedded, but the public envelope still needs an unambiguous
-payload location or framing rule.
+All arithmetic and integer conversions must be checked. Parsers must reject
+truncation, impossible lengths, unknown values, and trailing bytes. Decrypted
+filenames and contents must not appear in errors or logs. No partial plaintext
+may be returned after any validation failure.
 
 ## Public envelope
 
-The public envelope may include only fields required for package processing:
+The public envelope is exactly 20 bytes:
 
-| Field | Purpose |
-| --- | --- |
-| format name | identifies the input as a PQSend package |
-| format version | selects the package parser and compatibility behavior |
-| implementation version | optional diagnostic identifier |
-| package mode | identifies `single-file` mode in `v0.1` |
-| backend identifier | selects the reviewed encryption backend |
-| encrypted payload location | locates or frames the encrypted payload |
+| Offset | Size | Field | Canonical value or rule |
+| ---: | ---: | --- | --- |
+| 0 | 8 | magic | `89 50 51 53 45 4E 44 0A` (`\x89PQSEND\n`) |
+| 8 | 2 | format version | `0x0001` |
+| 10 | 1 | package mode | `0x01` (`single-file`) |
+| 11 | 1 | backend ID | `0x01` (binary age v1, one X25519 recipient) |
+| 12 | 8 | encrypted payload length | `1..=68,157,749` |
+| 20 | variable | encrypted payload | exactly the declared number of bytes |
 
-The backend may require public cryptographic recipient material. That material
-must be limited to what the backend requires and reviewed for metadata impact.
+EOF must immediately follow the encrypted payload. The encrypted payload must
+be exactly one complete binary age file; ASCII armor and trailing data are
+forbidden.
 
-The public envelope must not include:
+The public envelope contains no flags, reserved bytes, header length,
+implementation version, timestamp, extension field, recipient display name,
+recipient key, sender identity, note, plaintext filename, plaintext path, or
+plaintext file hash.
 
-- the plaintext original filename
-- a plaintext folder or source path
-- a plaintext note or message
-- a plaintext recipient display name by default
-- user-supplied descriptions or comments
+## Encrypted inner plaintext
 
-Transport observers can still learn metadata outside or inherent to the
-package, including approximate package size and transfer time. An optional
-implementation version can also aid implementation fingerprinting.
+Age encrypts one canonical plaintext with this exact layout:
 
-## Encrypted internal manifest
+| Offset | Size | Field | Canonical value or rule |
+| ---: | ---: | --- | --- |
+| 0 | 8 | inner magic | ASCII `PQSINNER` |
+| 8 | 2 | authenticated format version | equals public version |
+| 10 | 1 | authenticated package mode | equals public mode |
+| 11 | 1 | authenticated backend ID | equals public backend |
+| 12 | 2 | filename byte length | `1..=255` |
+| 14 | 8 | file size | `0..=67,108,864` |
+| 22 | 32 | file hash | raw SHA-256 of exact file bytes |
+| 54 | variable | filename | exact canonical UTF-8 filename bytes |
+| after filename | variable | file body | exactly `file size` bytes |
 
-The authenticated encrypted payload must contain an internal manifest with:
+EOF must immediately follow the file body. The inner/public version, mode, and
+backend values are compared only after successful age authentication. The
+inner plaintext contains no source path, timestamp, note, folder entry, or
+other optional metadata.
 
-| Field | Requirement |
-| --- | --- |
-| original filename | required; a filename only, never a source folder path |
-| file size | required; used for validation and resource limits |
-| file hash | required; supports validation and human-readable receipts |
-| creation timestamp | optional; include only when a defined use justifies the metadata |
-| note or message | reserved for a future milestone; not used by `v0.1` |
+## Filename rules
 
-The manifest and file body must be protected together by the selected
-authenticated encryption backend. The file hash is not a replacement for
-backend authentication.
+The filename is a filename only, never a path. Implementations reject rather
+than sanitize a filename that:
 
-## Opening and extraction
+- is not UTF-8, is empty, is `.`, or is `..`
+- exceeds 255 UTF-8 bytes
+- contains `/`, `\`, NUL, an ASCII control character, or any of
+  `< > : " | ? *`
+- ends with a dot or space
+- case-insensitively matches a Windows reserved device stem: `CON`, `PRN`,
+  `AUX`, `NUL`, `COM1` through `COM9`, `LPT1` through `LPT9`, `COM¹`,
+  `COM²`, `COM³`, `LPT¹`, `LPT²`, or `LPT³`
 
-An opener must authenticate package data before trusting the internal manifest
-or writing output. It must:
+Reserved device stems remain forbidden when followed by an extension, such as
+`CON.txt`.
 
-- reject unknown versions, modes, backends, and malformed framing
-- enforce documented resource limits before allocation and extraction
-- treat the manifest filename as an untrusted filename, not a path
-- reject absolute paths, separators, parent traversal, unsafe platform names,
-  and other path forms that could escape the selected output directory
-- reject conflicting output paths
-- never overwrite an existing file without explicit confirmation
-- avoid exposing decrypted filenames or contents in logs or receipts by default
+## Limits
 
-## Security receipts
+| Constant | Value | Meaning |
+| --- | ---: | --- |
+| `FORMAT_VERSION_V1` | 1 | only accepted version |
+| `MODE_SINGLE_FILE` | 1 | only accepted mode |
+| `BACKEND_AGE_V1_X25519` | 1 | only accepted backend |
+| `PUBLIC_ENVELOPE_LEN` | 20 | fixed public bytes |
+| `MAX_FILENAME_BYTES` | 255 | maximum UTF-8 filename bytes |
+| `MAX_FILE_BYTES` | 67,108,864 | maximum file body bytes |
+| `MAX_INNER_METADATA_BYTES` | 309 | 54 fixed bytes plus filename |
+| `MAX_INNER_PLAINTEXT_BYTES` | 67,109,173 | metadata plus file body |
+| `MAX_ENCRYPTED_PAYLOAD_BYTES` | 68,157,749 | maximum binary age payload |
+| `MAX_PACKAGE_BYTES` | 68,157,769 | envelope plus encrypted payload |
 
-A security receipt is a future local, human-readable summary of checks and
-choices made during an operation. It is not part of the public package envelope
-and is not a signature, proof of authorship, or proof of delivery. Receipt
-behavior is deferred beyond `v0.1`.
+Package opening validates the public envelope and exact outer length before age
+decryption. After complete age authentication, it validates the complete inner
+plaintext, filename, exact body length, and SHA-256 value before returning a
+filename or file bytes. The core API operates only on in-memory bytes and does
+not write or overwrite files.
+
+## Experimental local contact book
+
+The separate experimental contact book stores contacts in `contacts.toml`
+below an OS-appropriate local config directory. It is not integrated with
+package creation or opening. Contacts contain a case-sensitive local name,
+normalized opaque public-key text, a SHA-256 comparison fingerprint, and a
+local manual `verified` boolean.
+
+The fingerprint is not encryption, a signature, a certificate, or proof of
+identity. Contact names contain 1 to 64 ASCII letters, numbers, `_`, `-`, or
+`.` characters and reject separators, traversal forms, whitespace, controls,
+and duplicates. Contact replacement is not implemented.
 
 ## Compatibility and change policy
 
-All pre-`v1.0.0` formats are experimental and unstable. A package format change
-requires corresponding updates to this document, `THREAT_MODEL.md`, design
-rationale, test vectors, and security-sensitive tests before implementation is
+A package-format or security-boundary change requires corresponding updates to
+this document, `docs/package-format.md`, `docs/design-decisions.md`,
+`THREAT_MODEL.md`, and security-sensitive tests before implementation is
 complete.
