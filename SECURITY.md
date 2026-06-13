@@ -2,8 +2,27 @@
 
 ## Project maturity
 
-PQSend is experimental and does not implement encryption yet. Do not use it for
-sensitive real-world data.
+PQSend is experimental, incomplete, and not ready for sensitive real-world
+data. The current repository does not implement encryption or package handling,
+and no security guarantees are made for it.
+
+Pre-`v1.0.0` package formats and behaviors are unstable. Security claims must be
+based on implemented, tested, and reviewed behavior rather than roadmap goals.
+
+## Security principles
+
+- Avoid custom cryptography and manual composition of cryptographic primitives.
+- Prefer existing, well-known encryption backends such as `age` or `rage` in
+  early versions.
+- Keep encryption and decryption local, with no telemetry or required server.
+- Keep public package metadata minimal and filenames inside the encrypted
+  internal manifest.
+- Treat contact-key verification, private-key protection, authenticated parsing,
+  path traversal prevention, and overwrite prevention as security boundaries.
+
+PQSend may be described as post-quantum-ready only when referring to its planned
+backend agility. It must not imply current post-quantum protection. See
+`THREAT_MODEL.md` for intended protections and explicit limitations.
 
 ## Reporting a vulnerability
 
@@ -18,8 +37,6 @@ contact channel without including vulnerability details.
 ## Security design changes
 
 Use the security design issue template for proposals that alter trust
-assumptions, package metadata, cryptographic dependencies, key handling, or
-extraction behavior. Security-sensitive behavior requires tests and matching
-updates to `SPEC.md` and `THREAT_MODEL.md`.
-
-No security guarantees are made for the current repository skeleton.
+assumptions, package metadata, cryptographic dependencies, key handling,
+receipts, or extraction behavior. Security-sensitive behavior requires tests
+and matching updates to `SPEC.md` and `THREAT_MODEL.md`.
