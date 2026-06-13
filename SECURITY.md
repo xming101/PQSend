@@ -3,9 +3,9 @@
 ## Project maturity
 
 PQSend is experimental, incomplete, and not ready for sensitive real-world
-data. The current repository contains an experimental core-only binary age v1
-X25519 backend adapter, but it does not implement `.pqsend` package handling or
-CLI integration, and no security guarantees are made for it.
+data. The current repository contains an experimental binary age v1 X25519
+backend, strict v0.1 `.pqsend` package handling, and an explicit-key-file CLI,
+but no security guarantees are made for it.
 
 Pre-`v1.0.0` package formats and behaviors are unstable. Security claims must be
 based on implemented, tested, and reviewed behavior rather than roadmap goals.

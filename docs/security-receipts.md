@@ -1,19 +1,37 @@
 # Security Receipts
 
-Security receipts are a future local, human-readable record of selected PQSend
-operations. They are intended to make important choices and checks visible
-without asking users to interpret cryptographic internals.
+Security receipts are local, human-readable command output for selected PQSend
+operations. They make important choices and checks visible without asking users
+to interpret cryptographic internals.
 
-Receipts are not implemented and are out of scope for `v0.1`.
+The v0.1 CLI prints receipts after successful `pack` and `open` operations.
+They are not stored in or next to the `.pqsend` package.
 
-## Intended questions
+## Pack receipt
 
-A receipt may help a user answer:
+Successful `pack` output uses this wording:
 
-- which local contact and verification status were used?
-- which package format, mode, and encryption backend were processed?
-- which integrity, resource-limit, path-safety, and overwrite checks completed?
-- when did the local operation complete?
+```text
+Encrypted locally: yes
+Original filename hidden in package: yes
+Recipient source: explicit recipient file
+Backend: age v1 X25519
+Post-quantum secure: no
+Known leakage: package size, transfer timing, and outer package filename
+```
+
+## Open receipt
+
+Successful `open` output uses this wording:
+
+```text
+Decryption succeeded: yes
+Integrity verified: yes
+Original filename restored: yes
+Output path: <output-directory>/<restored-filename>
+Backend: age v1 X25519
+Post-quantum secure: no
+```
 
 ## Trust limits
 
@@ -23,10 +41,10 @@ uncompromised. It reports what the local implementation observed and did.
 
 ## Privacy rules
 
-Receipts are local artifacts and must not be included in the public `.pqsend`
-envelope. By default, they must avoid plaintext filenames, source or destination
-paths, file contents, notes, private key material, and unnecessary identifiers.
-Any optional identifying detail must be explicit and user-controlled.
-
-Before implementation, receipt purpose, storage, retention, redaction,
-exporting, and trust claims require updates to `SPEC.md` and `THREAT_MODEL.md`.
+Receipts are local command output and are not included in the public `.pqsend`
+envelope. The `pack` receipt avoids plaintext filenames, source paths,
+destination paths, file contents, private key material, and unnecessary
+identifiers. The `open` receipt intentionally displays the selected output path,
+which includes the restored filename, only after successful authenticated
+decryption and validation. Users should treat terminal logs containing an open
+receipt as plaintext metadata.
