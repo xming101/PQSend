@@ -1,0 +1,10 @@
+[package]
+name = "pqsend-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core types and behavior for PQSend"
+
+[lib]
+path = "src/lib.rs"
