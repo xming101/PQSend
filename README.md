@@ -21,6 +21,7 @@ package and user-safety layer around established encryption backends:
 > PQSend is experimental, incomplete, and not ready for sensitive real-world
 > data. The repository contains an experimental age backend adapter, but does
 > not implement `.pqsend` package creation or extraction.
+> IT DOES NOT WORK AS OF NOW, PLEASE WAIT FOR A TESTED VERSION TO BE RELEASED
 
 ## Security approach
 
