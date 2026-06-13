@@ -3,15 +3,16 @@
 ## Status and scope
 
 PQSend is experimental and must not be used for sensitive real-world data yet.
-The current core implements strict in-memory `.pqsend` `v0.1` package creation
-and opening, a binary age v1 X25519 backend adapter, and a separate local
-experimental contact book. Package behavior is not integrated with the CLI or
-contacts, and no decrypted file is written to disk.
+The current implementation provides strict `.pqsend` `v0.1` package creation
+and opening, a binary age v1 X25519 backend adapter, an explicit-key-file CLI,
+and a separate local experimental contact book. Package behavior is not
+integrated with contacts.
 
 `v0.1` covers one file encrypted locally for exactly one recipient. Folder
 support, multiple recipients, signatures, password mode, post-quantum
 encryption, GUI, relay server, networking, telemetry, and chat are out of
-scope.
+scope. The implemented v0.1 backend is X25519-only and is not post-quantum
+secure.
 
 ## Assets
 
@@ -19,7 +20,7 @@ scope.
 - local private key material
 - contact public keys and verification status
 - package integrity and intended recipient selection
-- any future extracted files and destination filesystem
+- extracted files and destination filesystem
 
 ## Trust assumptions
 
@@ -52,6 +53,15 @@ Errors are redacted and do not contain decrypted filenames, file contents, key
 material, or detailed backend errors. The core package API accepts and returns
 bytes only; it does not access filesystem paths, extract, or overwrite files.
 
+The CLI accepts exactly one explicit X25519 recipient or identity per key file.
+It bounds input and package reads, accepts only regular input files, uses only a
+validated basename, refuses overwrite, and publishes completed package and
+plaintext output files from temporary files. Opening authenticates and
+validates the complete package before creating a final plaintext file. It
+rejects a symbolic link as the final output-directory component and creates a
+missing output directory privately on Unix. Key generation rejects equivalent
+destinations and publishes the public recipient before the private identity.
+
 ## Protected against
 
 Within the assumptions above, the implemented core is designed to protect
@@ -67,6 +77,12 @@ against:
   valid package results
 - accidental file-body corruption or metadata/body disagreement going
   undetected after authentication
+- CLI extraction traversing outside the selected output directory through the
+  authenticated filename
+- accidental overwrite of existing key, package, or extracted output files
+- failed decryption leaving a final plaintext output file
+- key-generation validation or public-recipient publication failure leaving an
+  unexpected private identity file
 
 ## Not protected against
 
@@ -78,6 +94,7 @@ PQSend does not protect against:
 - denial of service, deletion, delivery failure, or all memory-exhaustion
   attacks
 - bugs or vulnerabilities in PQSend, age, SHA-256, or dependencies
+- filesystem replacement races involving trusted output-directory ancestors
 - transport metadata such as sender, recipient, timing, and transfer size
 - unknown future cryptographic breaks
 - harvest-now-decrypt-later attacks or other post-quantum adversaries
@@ -85,7 +102,8 @@ PQSend does not protect against:
   original plaintext file
 
 Encryption does not prove package authorship, delivery, endpoint security, or
-contact identity. Signatures and receipts are not implemented.
+contact identity. The printed local receipts are not signatures or external
+proof.
 
 ## Metadata limitations
 
@@ -103,9 +121,13 @@ outer package filename is outside this protection. Naming a package
 Package creation holds the input file, inner plaintext, encrypted payload, and
 resulting package in memory at different stages. Opening authenticates the
 complete decrypted age plaintext in memory and then returns a validated copy of
-the file bytes. Temporary and in-memory plaintext handling therefore remains a
-limitation even with the 64 MiB file cap. Memory may persist until released or
-be exposed by endpoint compromise, swapping, crash dumps, or debugging tools.
+the file bytes. The CLI then writes validated plaintext through a temporary file
+in the selected output directory before publishing its final name. A failed
+write removes the temporary path but cannot guarantee erasure of plaintext disk
+blocks. Temporary and in-memory plaintext handling therefore remains a
+limitation even with the 64 MiB file cap. Memory or disk remnants may persist or
+be exposed by endpoint compromise, swapping, crash dumps, filesystem behavior,
+or debugging tools.
 
 The documented caps bound accepted package sizes but do not guarantee
 resistance to CPU, allocation, or repeated-input denial of service.

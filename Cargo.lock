@@ -895,9 +895,12 @@ dependencies = [
 name = "pqsend-cli"
 version = "0.0.0"
 dependencies = [
+ "age",
  "clap",
  "directories",
  "pqsend-core",
+ "sha2",
+ "tempfile",
 ]
 
 [[package]]

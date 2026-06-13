@@ -19,9 +19,8 @@ package and user-safety layer around established encryption backends:
 
 > [!WARNING]
 > PQSend is experimental, incomplete, and not ready for sensitive real-world
-> data. The repository contains an experimental age backend adapter, but does
-> not implement `.pqsend` package creation or extraction.
-> IT DOES NOT WORK AS OF NOW, PLEASE WAIT FOR A TESTED VERSION TO BE RELEASED
+> data. The repository implements an experimental v0.1 one-file CLI workflow,
+> but it has not received an independent security review.
 
 ## Security approach
 
@@ -40,19 +39,20 @@ tests, and threat-model update.
 
 ## Current status
 
-The repository currently contains the `v0.0.1` project skeleton plus an
-experimental local contact book and age backend adapter:
+The repository currently contains an experimental `v0.1` package core and CLI
+workflow plus a separate local contact book:
 
 - a Rust workspace with `pqsend-core` and `pqsend-cli`
 - working `init` and `contact` CLI commands
-- a tested, core-only binary age v1 X25519 encryption/decryption adapter
-- stub package commands that describe the intended package user experience
+- a tested binary age v1 X25519 encryption/decryption adapter
+- strict single-file `.pqsend` package creation, opening, and public inspection
+- explicit age X25519 key-file generation and package CLI commands
 - early, non-normative design and security documentation
 
-There is no `.pqsend` package creation, package extraction, backend CLI
-integration, contact-backend integration, networking, GUI, password mode,
-signing, relay service, chat, sender identity management, or post-quantum
-protection. The current X25519 backend is not post-quantum-secure.
+There is no contact-backend integration, folder support, multiple-recipient
+support, networking, GUI, password mode, signing, relay service, chat, sender
+identity management, or post-quantum protection. The current X25519 backend is
+not post-quantum-secure.
 
 The `v0.1` milestone is deliberately narrow: encrypt and decrypt one file for
 one recipient using a reviewed existing backend and a draft `.pqsend` package.
@@ -89,15 +89,41 @@ The contact store format is experimental and may change without migration
 support. It is local plaintext state, so protect it using normal operating
 system account and filesystem controls.
 
-## Intended package commands
+## Explicit key-file quick start
 
-These longer-term package commands remain stubs:
+Generate one private age X25519 identity and its matching public recipient:
 
-```text
-pqsend pack <input-file> --to <contact>
-pqsend open <package> --out <directory>
-pqsend inspect <package>
+```sh
+cargo run -p pqsend-cli -- keygen \
+  --out identity.txt \
+  --public-out recipient.txt
 ```
+
+Keep `identity.txt` secret. Give only `recipient.txt` to a sender. Encrypt one
+regular file of at most 64 MiB into an explicitly named package:
+
+```sh
+cargo run -p pqsend-cli -- pack report.pdf \
+  --recipient-file recipient.txt \
+  --out pqsend-transfer-001.pqsend
+```
+
+The outer package name is intentionally unrelated to the original filename.
+Inspect only its public 20-byte envelope, then decrypt it:
+
+```sh
+cargo run -p pqsend-cli -- inspect pqsend-transfer-001.pqsend
+
+cargo run -p pqsend-cli -- open pqsend-transfer-001.pqsend \
+  --identity-file identity.txt \
+  --out opened
+```
+
+Package creation, key generation, and extraction refuse to overwrite existing
+files. `open` restores the authenticated original basename only after complete
+decryption and validation, rejects a symbolic link as the final output-directory
+component, and creates a missing output directory privately on Unix. Contacts
+are not used by this workflow.
 
 See [docs/backend-age.md](docs/backend-age.md) for the implemented backend
 boundary and limitations.

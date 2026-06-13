@@ -84,11 +84,11 @@ The package maximum is `20 + 68,157,749`.
 
 ## Scope and privacy
 
-The core creates and opens package bytes in memory. It does not accept
-filesystem paths, extract files, overwrite files, integrate contacts, or
-change CLI behavior. Folder entries, multiple recipients, password mode,
-signatures, post-quantum encryption, padding, notes, timestamps, and extension
-fields are absent.
+The core creates and opens package bytes in memory. The v0.1 CLI wraps that core
+with explicit X25519 key files, single-file package creation, authenticated
+extraction, and public-envelope inspection. It does not integrate contacts.
+Folder entries, multiple recipients, password mode, signatures, post-quantum
+encryption, padding, notes, timestamps, and extension fields are absent.
 
 The original filename and SHA-256 value are encrypted. Approximate package size
 and the fact that age/X25519 is used remain visible. Users can independently
