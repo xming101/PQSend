@@ -17,8 +17,8 @@ backward compatibility.
 
 - select and integrate a reviewed existing backend such as `age` or `rage`
 - create and open one `.pqsend` package containing one file for one recipient
-- accept one explicitly supplied recipient public key; contact workflows follow
-  in `v0.2.0`
+- accept one explicitly supplied recipient public key; integration with the
+  experimental local contact book follows in `v0.2.0`
 - encrypt the file contents and internal manifest, including the filename
 - expose only the minimal public metadata defined by the draft specification
 - prevent path traversal and implicit overwrite during extraction
@@ -29,8 +29,10 @@ server, and chat are explicitly out of scope for `v0.1`.
 
 ## v0.2.0: Contacts, verification, and receipts
 
-- local identity and contact-book workflows
-- contact fingerprint display and explicit verification status
+- harden and integrate the experimental contact-book workflows
+- local identity workflows
+- contact fingerprint display and explicit verification status beyond the
+  provisional opaque-text representation
 - human-readable local security receipts
 - tests for filesystem permissions, parsing, and trust-state transitions
 

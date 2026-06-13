@@ -58,3 +58,13 @@ until a reviewed hybrid future-resistant backend is implemented and tested.
 
 Draft package concepts support design discussion and experimental
 implementation. They carry no compatibility promise before `v1.0.0`.
+
+## DD-010: Provisional opaque-text contact fingerprints
+
+The first contact book intentionally precedes encryption-backend selection.
+Public keys are therefore stored as opaque normalized UTF-8 text, and contacts
+use grouped uppercase SHA-256 fingerprints over that normalized text. This
+fingerprint is a stable local comparison identifier, not encryption or proof of
+identity. Verification is only a deliberate local boolean. The TOML contact
+format and fingerprint approach remain experimental and may change when a
+reviewed encryption backend is selected.

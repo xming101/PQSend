@@ -12,4 +12,5 @@ path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
+directories.workspace = true
 pqsend-core = { path = "../pqsend-core" }
