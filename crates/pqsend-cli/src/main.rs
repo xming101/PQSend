@@ -167,8 +167,8 @@ fn execute(command: Command, config_dir: Option<&Path>) -> Result<String, Box<dy
 }
 
 fn keygen(identity_path: &Path, recipient_path: &Path) -> Result<String, Box<dyn Error>> {
-    let resolved_identity_path = resolve_destination(identity_path)?;
-    let resolved_recipient_path = resolve_destination(recipient_path)?;
+    let resolved_identity_path = resolve_destination(identity_path, "identity file")?;
+    let resolved_recipient_path = resolve_destination(recipient_path, "recipient file")?;
     if resolved_identity_path == resolved_recipient_path {
         return Err(cli_error(
             "identity and public recipient output paths must be different",
@@ -410,11 +410,20 @@ fn destination_parent(path: &Path) -> &Path {
         .unwrap_or_else(|| Path::new("."))
 }
 
-fn resolve_destination(path: &Path) -> Result<PathBuf, Box<dyn Error>> {
+fn resolve_destination(path: &Path, kind: &str) -> Result<PathBuf, Box<dyn Error>> {
     let filename = path
         .file_name()
         .ok_or_else(|| cli_error("output path must name a file"))?;
-    Ok(fs::canonicalize(destination_parent(path))?.join(filename))
+    let parent = match fs::canonicalize(destination_parent(path)) {
+        Ok(parent) => parent,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            return Err(cli_error(&format!(
+                "{kind} parent directory does not exist"
+            )));
+        }
+        Err(error) => return Err(error.into()),
+    };
+    Ok(parent.join(filename))
 }
 
 fn create_private_output_directory(path: &Path) -> Result<PathBuf, Box<dyn Error>> {

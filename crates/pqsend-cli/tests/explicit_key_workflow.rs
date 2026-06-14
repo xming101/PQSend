@@ -105,8 +105,8 @@ fn packaged_file(
 #[test]
 fn keygen_creates_identity_and_recipient_files() {
     let temporary = TempDir::new().expect("temporary directory");
-    let identity = temporary.path().join("identity.txt");
-    let recipient = temporary.path().join("recipient.txt");
+    let identity = temporary.path().join("bob.agekey");
+    let recipient = temporary.path().join("bob.agepub");
     let mut command = pqsend();
     command
         .arg("keygen")
@@ -116,11 +116,15 @@ fn keygen_creates_identity_and_recipient_files() {
         .arg(&recipient);
 
     let output = success(command);
+    assert!(identity.is_file());
+    assert!(recipient.is_file());
     let identity_text = fs::read_to_string(identity).expect("read identity");
     let recipient_text = fs::read_to_string(recipient).expect("read recipient");
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
 
+    assert!(!identity_text.is_empty());
+    assert!(!recipient_text.is_empty());
     assert!(identity_text.contains("KEEP THIS FILE SECRET"));
     assert!(identity_text.contains("AGE-SECRET-KEY-"));
     assert!(recipient_text.lines().any(|line| line.starts_with("age1")));
@@ -150,6 +154,29 @@ fn keygen_refuses_to_overwrite_existing_key_files() {
         b"existing identity"
     );
     assert!(!recipient.exists());
+}
+
+#[test]
+fn keygen_refuses_to_overwrite_existing_public_recipient_file() {
+    let temporary = TempDir::new().expect("temporary directory");
+    let identity = temporary.path().join("bob.agekey");
+    let recipient = temporary.path().join("bob.agepub");
+    fs::write(&recipient, b"existing recipient").expect("write existing recipient");
+    let mut command = pqsend();
+    command
+        .arg("keygen")
+        .arg("--out")
+        .arg(&identity)
+        .arg("--public-out")
+        .arg(&recipient);
+
+    failure(command);
+
+    assert!(!identity.exists());
+    assert_eq!(
+        fs::read(recipient).expect("read existing recipient"),
+        b"existing recipient"
+    );
 }
 
 #[test]
@@ -186,9 +213,11 @@ fn keygen_validation_failure_leaves_no_private_key() {
         .arg("--public-out")
         .arg(recipient);
 
-    failure(command);
+    let output = failure(command);
 
     assert!(!identity.exists());
+    assert!(String::from_utf8_lossy(&output.stderr)
+        .contains("recipient file parent directory does not exist"));
 }
 
 #[cfg(unix)]
