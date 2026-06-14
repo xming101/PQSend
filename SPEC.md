@@ -11,8 +11,8 @@ non-canonical, or oversized input.
 The repository implements this format in `pqsend-core` and exposes it through a
 narrow CLI using explicit age X25519 key files. The CLI does not integrate the
 contact book or implement folders, multiple recipients, signatures, password
-mode, post-quantum encryption, GUI, networking, relay services, telemetry, or
-chat.
+mode, post-quantum encryption, GUI, networking (including Wi-Fi transfer),
+relay services, telemetry, or chat.
 
 ## Product and cryptographic boundary
 

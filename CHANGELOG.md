@@ -47,6 +47,7 @@ data.
 - password mode
 - GUI
 - relay server
+- Wi-Fi transfer
 - chat
 - a stable package format
 - an external security audit
