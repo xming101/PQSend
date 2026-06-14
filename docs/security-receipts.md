@@ -7,11 +7,13 @@ to interpret cryptographic internals.
 The v0.1 CLI prints receipts after successful `pack` and `open` operations.
 They are not stored in or next to the `.pqsend` package.
 
-Contact commands also print local contact names, canonical recipients, and
-full or short fingerprints where needed. `contact fingerprint` displays all
-required fields, and `contact verify` displays the canonical recipient and full
-fingerprint before requesting exact confirmation. These values remain local
-CLI output and are never embedded in `.pqsend` package metadata.
+Contact commands also print local contact aliases, canonical recipients, and
+full or short fingerprints where needed. Contact-pack receipts may print the
+local alias, fingerprint, and verification status. `contact fingerprint`
+displays all required fields, and `contact verify` displays the canonical
+recipient and full fingerprint before requesting exact confirmation. All of
+these contact fields are local output only and are never embedded in `.pqsend`
+package metadata.
 
 ## Pack receipt
 
@@ -76,8 +78,8 @@ which includes the restored filename, only after successful authenticated
 decryption and validation. Users should treat terminal logs containing an open
 receipt as plaintext metadata.
 
-Contact names, canonical recipients, fingerprints, and verification status in
-terminal output are also local plaintext metadata. Short fingerprints are
-display-only and must not be used for verification or duplicate decisions.
-No contact receipt field is embedded in the public envelope or encrypted
-manifest.
+Contact aliases, canonical recipients, fingerprints, and verification status
+in terminal output and receipts are local plaintext metadata. Short
+fingerprints are display-only and must not be used for verification or
+duplicate decisions. No contact receipt field is embedded in the public
+envelope or encrypted manifest.

@@ -103,6 +103,9 @@ PQSend does not protect against:
 - transport metadata such as sender, recipient, timing, and transfer size
 - unknown future cryptographic breaks
 - harvest-now-decrypt-later attacks or other post-quantum adversaries
+- encryption to an unintended recipient when a contact is unverified, its full
+  fingerprint was not compared through an independent authenticated channel,
+  or the local contact store is compromised
 - leakage caused by users naming the outer `.pqsend` package after the
   original plaintext file
 
@@ -153,6 +156,12 @@ It records a local decision about one exact recipient, not identity proof,
 proof of key control, delivery proof, or authorship proof. Short fingerprints
 are display-only. Contact names and fingerprints may appear in local CLI output
 or receipts but must never enter `.pqsend` package metadata.
+
+An unverified contact provides no recipient-key verification assurance.
+Encrypting to one, including through the explicit one-command override, risks
+selecting an unintended or substituted recipient. Verification is meaningful
+only when the user compares the authoritative full fingerprint through an
+independent authenticated channel.
 
 The store is plaintext local state used by `pack --to`. Endpoint or
 local-account compromise can modify recipients and matching verification
