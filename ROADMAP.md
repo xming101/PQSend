@@ -22,18 +22,19 @@ backward compatibility.
 - encrypt the file contents and internal manifest, including the filename
 - expose only the minimal public metadata defined by the draft specification
 - prevent path traversal and implicit overwrite during extraction
+- print local security receipts for successful package creation and opening
 - add package test vectors and security-sensitive tests
 
 Folder support, multiple recipients, signatures, password mode, GUI, relay
 server, and chat are explicitly out of scope for `v0.1`.
 
-## v0.2.0: Contacts, verification, and receipts
+## v0.2.0: Contacts and verification
 
 - harden and integrate the experimental contact-book workflows
 - local identity workflows
 - contact fingerprint display and explicit verification status beyond the
   provisional opaque-text representation
-- human-readable local security receipts
+- integrate and extend local security receipts for contact-based workflows
 - tests for filesystem permissions, parsing, and trust-state transitions
 
 ## v0.3.0: Format and parser hardening

@@ -2,13 +2,15 @@
 
 ## Status
 
-This document defines the experimental `.pqsend` `v0.1` package format. There
-is no compatibility promise before `v1.0.0`. Implementations must fail closed
-on unknown, malformed, non-canonical, or oversized input.
+This document defines the experimental `.pqsend` `v0.1` package format used by
+`v0.1.0-alpha.1`. The package format is unstable before `v1.0.0`; pre-v1
+releases may change it incompatibly and there is no backward-compatibility
+promise. Implementations must fail closed on unknown, malformed,
+non-canonical, or oversized input.
 
-The repository implements this format in `pqsend-core` only. It does not
-integrate package creation or opening with the CLI or contact book, extract
-files to disk, or implement folders, multiple recipients, signatures, password
+The repository implements this format in `pqsend-core` and exposes it through a
+narrow CLI using explicit age X25519 key files. The CLI does not integrate the
+contact book or implement folders, multiple recipients, signatures, password
 mode, post-quantum encryption, GUI, networking, relay services, telemetry, or
 chat.
 
@@ -111,11 +113,38 @@ Reserved device stems remain forbidden when followed by an extension, such as
 | `MAX_ENCRYPTED_PAYLOAD_BYTES` | 68,157,749 | maximum binary age payload |
 | `MAX_PACKAGE_BYTES` | 68,157,769 | envelope plus encrypted payload |
 
+`MAX_FILE_BYTES` is the v0.1 file-size limit: 64 MiB (`67,108,864` bytes).
+
 Package opening validates the public envelope and exact outer length before age
 decryption. After complete age authentication, it validates the complete inner
 plaintext, filename, exact body length, and SHA-256 value before returning a
 filename or file bytes. The core API operates only on in-memory bytes and does
 not write or overwrite files.
+
+## CLI filesystem behavior
+
+The v0.1 CLI uses only explicit key files:
+
+- `keygen` creates one age X25519 identity file and its matching public
+  recipient file without overwriting either destination. It rejects equivalent
+  destination paths, requires both parent directories to already exist, and
+  publishes the public recipient before the private identity so a failed
+  operation does not leave an unexpected private key.
+- `pack` accepts one regular file of at most `MAX_FILE_BYTES`, encrypts only its
+  validated UTF-8 basename, requires an explicit recipient file and output
+  package path, and publishes the completed package without overwriting.
+- `open` requires an explicit identity file and output directory. It
+  authenticates and validates the complete package before restoring the
+  filename, writes through a temporary file in the output directory, and
+  publishes it without overwriting. The final output-directory component must
+  not be a symbolic link. A newly created output directory is private on Unix.
+- `inspect` validates and displays only fields from the public envelope plus
+  total package size. It does not decrypt the package.
+
+Recipient and identity files must each contain exactly one unadorned age X25519
+key, with optional comments. SSH, plugin, passphrase, armor, and other key or
+ciphertext modes are unsupported. The CLI prints local security receipts to
+standard output; receipts are not embedded in packages.
 
 ## Experimental local contact book
 
@@ -129,6 +158,11 @@ The fingerprint is not encryption, a signature, a certificate, or proof of
 identity. Contact names contain 1 to 64 ASCII letters, numbers, `_`, `-`, or
 `.` characters and reject separators, traversal forms, whitespace, controls,
 and duplicates. Contact replacement is not implemented.
+
+The original filename is encrypted inside the package, but an outer `.pqsend`
+filename chosen by the user or transport remains public metadata. Users who
+want to avoid filename leakage must not name the outer package after the
+original file.
 
 ## Compatibility and change policy
 

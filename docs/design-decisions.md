@@ -110,5 +110,6 @@ memory use with a conservative experimental ceiling.
 
 Filenames are rejected rather than sanitized. Sanitization can silently change
 the authenticated name, create collisions, or turn different hostile inputs
-into the same output name. Requiring a canonical safe filename keeps any
-future filesystem extraction decision explicit.
+into the same output name. Requiring a canonical safe filename keeps v0.1
+single-file extraction predictable and prevents the authenticated name from
+selecting a path outside the chosen output directory.

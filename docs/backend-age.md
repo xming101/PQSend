@@ -61,8 +61,9 @@ error details.
 Buffering authenticated plaintext prevents partial plaintext from escaping on
 failure, but it also means decryption memory use grows with plaintext size.
 The `v0.1` package layer enforces documented package limits and validates the
-returned inner plaintext before exposing it. Streaming and filesystem
-extraction remain future work.
+returned inner plaintext before exposing it. The CLI performs bounded,
+single-file extraction only after that complete validation. Streaming remains
+future work.
 
 ## Metadata exposure
 
