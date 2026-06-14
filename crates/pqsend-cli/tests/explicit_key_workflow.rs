@@ -264,6 +264,7 @@ fn pack_creates_a_pqsend_file_and_prints_encryption_receipt() {
     assert!(package.is_file());
     assert!(stdout.contains("Encrypted locally: yes"));
     assert!(stdout.contains("Original filename hidden in package: yes"));
+    assert!(stdout.contains("Recipient source: explicit recipient file"));
     assert!(stdout.contains("Post-quantum secure: no"));
     assert!(!stdout.contains("Transfer channel can decrypt"));
     assert!(!stdout.contains(&input.display().to_string()));

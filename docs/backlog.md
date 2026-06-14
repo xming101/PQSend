@@ -465,8 +465,9 @@ filesystem or metadata protections.
 - [ ] Storage locations, file formats, permissions, backup expectations, and
   failure behavior are documented.
 - [ ] Private and public material have separate handling rules.
-- [ ] Contact records contain only necessary local metadata.
-- [ ] `SPEC.md` and `THREAT_MODEL.md` cover identity and contact trust.
+- [x] Contact records contain only necessary local metadata.
+- [x] `SPEC.md` and `THREAT_MODEL.md` cover contact trust. Local identity
+  storage remains pending.
 
 **Out of scope**
 
@@ -482,11 +483,10 @@ replacement visible.
 
 **Acceptance criteria**
 
-- [ ] Import validates the selected backend's public-key format.
-- [ ] Adding an existing contact name or key requires explicit confirmation.
-- [ ] Replacing a key resets verification status and clearly shows the
-  fingerprint change.
-- [ ] Malformed records and unsafe local permissions fail closed.
+- [x] Import validates exactly one age X25519 recipient.
+- [x] Existing case-insensitive names and canonical recipients are rejected.
+- [ ] Explicit contact replacement remains unimplemented.
+- [x] Malformed records and unsafe local permissions fail closed.
 
 **Out of scope**
 
@@ -501,13 +501,14 @@ claiming that PQSend performed identity verification.
 
 **Acceptance criteria**
 
-- [ ] Fingerprints use the selected backend's documented representation or
-  another reviewed standard representation.
-- [ ] Contacts have explicit unverified and verified states.
-- [ ] Verification requires a deliberate local action and records only minimal
+- [x] Fingerprints use the selected backend's canonical representation and a
+  versioned, domain-separated SHA-256 construction.
+- [x] Contacts derive unverified and verified states from an exact
+  recipient-bound full fingerprint.
+- [x] Verification requires a deliberate local action and records only minimal
   necessary metadata.
-- [ ] Trust-state transitions and key replacement have security-sensitive
-  tests.
+- [x] Verification binding and changed-recipient failure have
+  security-sensitive tests. Explicit replacement remains pending.
 
 **Out of scope**
 
@@ -523,10 +524,12 @@ clear key and verification-state visibility.
 
 **Acceptance criteria**
 
-- [ ] Pack resolves exactly one contact to exactly one public key.
-- [ ] Recipient selection displays verification status before confirmation.
-- [ ] Missing, ambiguous, malformed, or changed contacts fail closed.
-- [ ] Packages still exclude plaintext contact display names by default.
+- [x] Pack resolves exactly one contact to exactly one parsed `AgeRecipient`.
+- [x] Recipient selection displays verification status in local output and
+  blocks unverified contacts without an explicit override.
+- [x] Missing, malformed, or changed contacts fail closed; duplicate names and
+  recipients are rejected by the store.
+- [x] Packages exclude contact names, fingerprints, and verification status.
 
 **Out of scope**
 
@@ -541,13 +544,13 @@ presenting them as signatures or delivery proofs.
 
 **Acceptance criteria**
 
-- [ ] Receipt purpose, storage, retention, redaction, and trust limits are
+- [x] Receipt purpose, storage, retention, redaction, and trust limits are
   documented before implementation.
-- [ ] Receipts remain local and are never embedded in the public package
+- [x] Receipts remain local and are never embedded in the public package
   envelope.
-- [ ] Default receipts omit plaintext filenames, paths, contents, and private
+- [x] Default receipts omit plaintext filenames, paths, contents, and private
   key material.
-- [ ] Receipt tests cover redaction and accurate verification-state reporting.
+- [x] Receipt tests cover redaction and accurate verification-state reporting.
 
 **Out of scope**
 
