@@ -12,7 +12,7 @@ package and user-safety layer around established encryption backends:
 - a `.pqsend` package format with minimal public metadata
 - an encrypted internal manifest, including the original filename
 - encrypted filenames and, in a later milestone, encrypted folder structure
-- a contact book with explicit verification status
+- a local recipient trust store with explicit verification status
 - human-readable security receipts
 - safe defaults for package creation and extraction
 - local-first operation, no telemetry, and no required server
@@ -41,7 +41,7 @@ tests, and threat-model update.
 ## Current status
 
 The repository currently contains an experimental `v0.1` package core and CLI
-workflow with a hardened local contact book:
+workflow with a local recipient trust store:
 
 - a Rust workspace with `pqsend-core` and `pqsend-cli`
 - working `init` and `contact` CLI commands
@@ -60,7 +60,7 @@ one recipient using an existing backend and a draft `.pqsend` package.
 Folder support, multiple recipients, signatures, password mode, GUI, relay
 server, Wi-Fi transfer, and chat are out of scope until later milestones.
 
-## Contact book
+## Contacts / local recipient trust store
 
 The implemented local contact commands are:
 
@@ -72,52 +72,19 @@ pqsend contact fingerprint <name>
 pqsend contact verify <name>
 ```
 
-`pqsend init` creates an experimental `contacts.toml` store below the
-OS-appropriate config directory, approximately:
+Contacts map local convenience aliases to canonical age X25519 recipients.
+Full fingerprints bind verification to the exact recipient key and must be
+compared through an independent authenticated channel. Short fingerprints are
+display-only. Verification is a local decision, not proof of identity,
+authorship, delivery, or continuing key control.
 
-- Linux: `~/.config/pqsend/`
-- macOS: `~/Library/Application Support/pqsend/`
-- Windows: `%APPDATA%\pqsend\`
-
-Contact import accepts exactly one valid age X25519 recipient, with optional
-blank lines and comments. It rejects malformed input, identities, SSH keys,
-plugin recipients, passphrase modes, post-quantum recipients, and multiple
-recipient keys. Recipient files must be regular UTF-8 files no larger than
-16 KiB. Only the canonical parsed age recipient is stored.
-
-Full fingerprints use the versioned form
-`pqsend-contact-v1:<64-lowercase-hex-digits>` over:
-
-```text
-SHA-256("pqsend-contact-fingerprint-v1\0age-x25519\0" || canonical_recipient)
-```
-
-The short fingerprint is the first 96 bits of that digest and is display-only.
-`contact verify` displays the canonical recipient and full fingerprint, then
-requires the full fingerprint to be typed exactly. Verification must be based
-on comparison through an independent authenticated channel. It records only a
-binding to that exact recipient; it is not identity proof and does not prove
-key control, delivery, or authorship.
-
-The incompatible contact store format is `experimental-v1`. Old
-`experimental-v0` stores are rejected and require explicit re-import and
-re-verification. Contact names preserve capitalization but resolve and remain
-unique ASCII-case-insensitively. Duplicate canonical recipients are rejected.
-On Unix, the config directory and store must be non-symlinks with modes `0700`
-and `0600`; writes use a same-directory temporary file and atomic rename.
-Privacy checks occur before store contents are read. Stores are limited to
-1 MiB and 1,024 contacts. Windows enforces regular-file and non-symlink checks
-but does not currently enforce equivalent ACL privacy, and atomic replacement
-behavior depends on the platform.
-
-The contact store is local plaintext state. Local compromise can replace
-recipients and their verification bindings. `pack --to <contact>` resolves a
-contact locally to its parsed `AgeRecipient` and blocks unverified contacts by
-default. `--allow-unverified` permits a one-command override without changing
-stored verification. Contact names, fingerprints, and verification status may
-appear in local CLI output, but they are never passed into package creation or
-placed in public or encrypted `.pqsend` metadata. The backend remains
-X25519-only and not post-quantum-secure.
+The contact store is local plaintext state, and local compromise can replace
+recipients and verification bindings. Contact aliases, fingerprints, and
+verification status may appear in local terminal output and receipts, but are
+never embedded in `.pqsend` package metadata. The current backend is
+X25519-only and not post-quantum-secure. See
+[Contacts: Local Recipient Trust Store](docs/CONTACTS.md) for the verification
+model, package boundary, limitations, and alpha-format compatibility.
 
 Encrypt to a verified contact:
 
