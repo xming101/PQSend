@@ -127,8 +127,9 @@ The v0.1 CLI uses only explicit key files:
 
 - `keygen` creates one age X25519 identity file and its matching public
   recipient file without overwriting either destination. It rejects equivalent
-  destination paths and publishes the public recipient before the private
-  identity so a failed operation does not leave an unexpected private key.
+  destination paths, requires both parent directories to already exist, and
+  publishes the public recipient before the private identity so a failed
+  operation does not leave an unexpected private key.
 - `pack` accepts one regular file of at most `MAX_FILE_BYTES`, encrypts only its
   validated UTF-8 basename, requires an explicit recipient file and output
   package path, and publishes the completed package without overwriting.

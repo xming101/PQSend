@@ -61,7 +61,8 @@ plaintext output files from temporary files. Opening authenticates and
 validates the complete package before creating a final plaintext file. It
 rejects a symbolic link as the final output-directory component and creates a
 missing output directory privately on Unix. Key generation rejects equivalent
-destinations and publishes the public recipient before the private identity.
+destinations, requires existing parent directories, and publishes the public
+recipient before the private identity.
 
 ## Protected against
 
