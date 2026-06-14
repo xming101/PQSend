@@ -143,6 +143,12 @@ Contact aliases, recipient strings, fingerprints, and verification status may
 appear in local terminal output and receipts. They are not included in the
 public envelope or encrypted internal manifest.
 
+Receipts also expose the observed package path and SHA-256, a local receipt
+time, and, after opening, the restored output path. Terminal capture can retain
+those fields as local plaintext metadata. Receipt fields are not cryptographic
+proof and do not establish package creation time, identity, authorship, or
+delivery.
+
 ## Package and metadata limits
 
 The public envelope reveals the package format version, single-file mode,

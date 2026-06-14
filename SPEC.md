@@ -149,7 +149,11 @@ The v0.1 CLI uses explicit key files and local contacts:
 Recipient and identity files must each contain exactly one unadorned age X25519
 key, with optional comments. SSH, plugin, passphrase, armor, and other key or
 ciphertext modes are unsupported. The CLI prints local security receipts to
-standard output; receipts are not embedded in packages.
+standard output after successful `pack` and `open` operations. Receipts include
+the observed package path and SHA-256, validated package format/mode/backend,
+and a local receipt time explicitly labeled as not package metadata. Opening
+also warns that sender identity and authorship are not verified. Receipts are
+not embedded in packages, and `inspect` does not print a receipt.
 
 ## Experimental local contact book
 
@@ -212,10 +216,10 @@ appear in local CLI output and receipts but must never be included in
 contact name, full fingerprint, and verification instruction. The
 `--allow-unverified` flag permits an explicit one-command override, reports the
 override in local output, and does not alter stored verification. A successful
-contact pack receipt may display the contact name, verification status, and
-short fingerprint locally. None of those values, nor the full fingerprint or
-recipient string, are supplied to package framing or the encrypted inner
-manifest.
+contact pack receipt displays the contact alias, full and short fingerprints,
+verification status, and any explicit unverified override locally. None of
+those values, nor the recipient string, are supplied to package framing or the
+encrypted inner manifest.
 
 Writes use a completed same-directory temporary file and atomic rename without
 first truncating the existing store. On Unix, the final config directory and

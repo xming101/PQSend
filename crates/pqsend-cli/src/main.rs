@@ -5,6 +5,7 @@ use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use age::secrecy::{ExposeSecret, SecretString};
 use clap::{ArgGroup, Parser, Subcommand};
@@ -13,6 +14,7 @@ use pqsend_core::{
     create_package, open_package, AgeIdentity, AgeRecipient, Contact, ContactBook, PackageError,
     PublicEnvelope, VerifyResult, MAX_FILE_BYTES, MAX_PACKAGE_BYTES, PUBLIC_ENVELOPE_LEN,
 };
+use sha2::{Digest, Sha256};
 use tempfile::{Builder, NamedTempFile};
 
 const MAX_KEY_FILE_BYTES: usize = 16 * 1024;
@@ -237,11 +239,22 @@ fn pack(
     let file_bytes = read_regular_file_bounded(input, MAX_FILE_BYTES, "input file")?;
     let package = create_package(filename, &file_bytes, &recipient.age_recipient)?;
     write_new_file(output, &package, "package file")?;
+    let written_package = read_regular_file_bounded(output, MAX_PACKAGE_BYTES, "package file")?;
+    let details = package_receipt_details(&written_package)?;
 
     Ok(format!(
-        "Encrypted locally: yes\nOriginal filename hidden in package: yes\n{}\nBackend: age v1 X25519\nPost-quantum secure: no\nKnown leakage: package size, transfer timing, and outer package filename",
+        "Security receipt (local CLI output only)\nOperation: package creation\nPackage path: {}\nPackage SHA-256: {}\nLocal receipt time (Unix seconds; not package metadata): {}\nPackage format version: {}\nPackage mode: single file\nCrypto backend/mode: age v1 X25519\nPost-quantum status: no; current backend is X25519-only\nEncrypted locally: yes\nOriginal filename hidden from public package metadata: yes\nEncrypted internal manifest: yes\n{}\nKnown leakage: package size; transfer timing outside PQSend; outer package filename chosen by user",
+        output.display(),
+        details.sha256,
+        local_receipt_time(),
+        details.format_version,
         recipient.receipt
     ))
+}
+
+struct PackageReceiptDetails {
+    sha256: String,
+    format_version: u16,
 }
 
 struct ResolvedPackRecipient {
@@ -278,15 +291,16 @@ fn resolve_pack_recipient(
             let warning = if contact.is_verified() {
                 ""
             } else {
-                "\nWarning: unverified contact override used for this operation only"
+                "\nWARNING: unverified contact override used for this operation only"
             };
             Ok(ResolvedPackRecipient {
                 age_recipient: contact.age_recipient().clone(),
                 receipt: format!(
-                    "Recipient source: contact\nContact name: {}\nContact verification: {}\nShort fingerprint: {}{}",
+                    "Recipient source: contact alias\nContact alias: {}\nRecipient full fingerprint: {}\nRecipient short fingerprint: {}\nRecipient verification status: {}{}",
                     contact.name(),
-                    verification,
+                    contact.full_fingerprint(),
                     contact.short_fingerprint(),
+                    verification,
                     warning
                 ),
             })
@@ -305,6 +319,7 @@ fn open(
     let existing_output_directory = validate_existing_output_directory(output_directory)?;
     let identity = read_identity(identity_file)?;
     let package = read_regular_file_bounded(package_path, MAX_PACKAGE_BYTES, "package file")?;
+    let details = package_receipt_details(&package)?;
     let opened = open_package(&package, &identity)?;
 
     let output_directory = match existing_output_directory {
@@ -316,9 +331,40 @@ fn open(
     write_new_file(&output_path, &opened.file_bytes, "output file")?;
 
     Ok(format!(
-        "Decryption succeeded: yes\nIntegrity verified: yes\nOriginal filename restored: yes\nOutput path: {}\nBackend: age v1 X25519\nPost-quantum secure: no",
+        "Security receipt (local CLI output only)\nOperation: open/decrypt\nPackage path: {}\nPackage SHA-256: {}\nLocal receipt time (Unix seconds; not package metadata): {}\nPackage format version: {}\nPackage mode: single file\nCrypto backend/mode: age v1 X25519\nPost-quantum status: no; current backend is X25519-only\nDecryption succeeded: yes\nIntegrity verified: yes\nOriginal filename restored: yes\nRestored output path: {}\nWARNING: sender identity and authorship are not verified; PQSend does not implement signatures",
+        package_path.display(),
+        details.sha256,
+        local_receipt_time(),
+        details.format_version,
         output_path.display()
     ))
+}
+
+fn package_receipt_details(package: &[u8]) -> Result<PackageReceiptDetails, Box<dyn Error>> {
+    let envelope = PublicEnvelope::decode(package)?;
+    let encrypted_payload_len = usize::try_from(envelope.encrypted_payload_len())
+        .map_err(|_| PackageError::EncryptedPayloadTooLarge)?;
+    let expected_package_len = PUBLIC_ENVELOPE_LEN
+        .checked_add(encrypted_payload_len)
+        .ok_or(PackageError::PackageLengthMismatch)?;
+    if package.len() != expected_package_len {
+        return Err(PackageError::PackageLengthMismatch.into());
+    }
+
+    Ok(PackageReceiptDetails {
+        sha256: format!("{:x}", Sha256::digest(package)),
+        format_version: envelope.version(),
+    })
+}
+
+fn local_receipt_time() -> String {
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(duration) => format!("{}.{:09}", duration.as_secs(), duration.subsec_nanos()),
+        Err(error) => {
+            let duration = error.duration();
+            format!("-{}.{:09}", duration.as_secs(), duration.subsec_nanos())
+        }
+    }
 }
 
 fn inspect(package_path: &Path) -> Result<String, Box<dyn Error>> {

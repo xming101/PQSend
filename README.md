@@ -153,7 +153,9 @@ refuses implicit overwrite.
 
 Local security receipts summarize selected recipient and completed checks. They
 are command output only, are not embedded in packages, and are not signatures
-or external proof.
+or external proof. Successful creation and opening receipts include the exact
+package SHA-256 and an explicitly local receipt time; neither proves identity,
+authorship, delivery, or package creation time.
 
 ## Limitations
 
@@ -178,7 +180,7 @@ protect compromised endpoints or private keys.
 - [Security model](docs/SECURITY-MODEL.md)
 - [Threat model](docs/THREAT-MODEL.md)
 - [Contact trust store](docs/CONTACTS.md)
-- [Security receipts](docs/security-receipts.md)
+- [Security receipts](docs/RECEIPTS.md)
 - [age backend boundary](docs/backend-age.md)
 - [Design decisions](docs/design-decisions.md)
 - [Roadmap](ROADMAP.md)

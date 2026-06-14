@@ -15,7 +15,5 @@ age.workspace = true
 clap.workspace = true
 directories.workspace = true
 pqsend-core = { path = "../pqsend-core" }
-tempfile.workspace = true
-
-[dev-dependencies]
 sha2.workspace = true
+tempfile.workspace = true

@@ -73,6 +73,13 @@ fn open(package: &Path, identity: &Path, output_directory: &Path) -> Output {
     success(command)
 }
 
+fn receipt_value<'a>(stdout: &'a str, label: &str) -> &'a str {
+    stdout
+        .lines()
+        .find_map(|line| line.strip_prefix(label))
+        .expect("receipt field")
+}
+
 fn assert_no_temporary_files(directory: &Path) {
     if !directory.exists() {
         return;
@@ -260,16 +267,34 @@ fn pack_creates_a_pqsend_file_and_prints_encryption_receipt() {
 
     let output = pack(&input, &recipient, &package);
     let stdout = String::from_utf8_lossy(&output.stdout);
+    let package_bytes = fs::read(&package).expect("read package");
+    let package_hash = format!("{:x}", Sha256::digest(&package_bytes));
 
     assert!(package.is_file());
+    assert!(stdout.contains("Security receipt (local CLI output only)"));
+    assert!(stdout.contains("Operation: package creation"));
+    assert!(stdout.contains(&format!("Package path: {}", package.display())));
+    assert!(stdout.contains(&format!("Package SHA-256: {package_hash}")));
+    receipt_value(
+        &stdout,
+        "Local receipt time (Unix seconds; not package metadata): ",
+    )
+    .parse::<f64>()
+    .expect("numeric local receipt time");
+    assert!(stdout.contains("Package format version: 1"));
+    assert!(stdout.contains("Package mode: single file"));
+    assert!(stdout.contains("Crypto backend/mode: age v1 X25519"));
+    assert!(stdout.contains("Post-quantum status: no; current backend is X25519-only"));
     assert!(stdout.contains("Encrypted locally: yes"));
-    assert!(stdout.contains("Original filename hidden in package: yes"));
+    assert!(stdout.contains("Original filename hidden from public package metadata: yes"));
+    assert!(stdout.contains("Encrypted internal manifest: yes"));
     assert!(stdout.contains("Recipient source: explicit recipient file"));
-    assert!(stdout.contains("Post-quantum secure: no"));
+    assert!(stdout.contains(
+        "Known leakage: package size; transfer timing outside PQSend; outer package filename chosen by user"
+    ));
     assert!(!stdout.contains("Transfer channel can decrypt"));
     assert!(!stdout.contains(&input.display().to_string()));
     assert!(!stdout.contains(&recipient.display().to_string()));
-    assert!(!stdout.contains(&package.display().to_string()));
 }
 
 #[test]
@@ -281,11 +306,34 @@ fn open_restores_original_filename_and_prints_decryption_receipt() {
 
     let output = open(&package, &identity, &output_directory);
     let stdout = String::from_utf8_lossy(&output.stdout);
+    let package_hash = format!(
+        "{:x}",
+        Sha256::digest(fs::read(&package).expect("read package"))
+    );
+    let restored_output = fs::canonicalize(&output_directory)
+        .expect("canonical output directory")
+        .join("restored-name.txt");
 
     assert!(output_directory.join("restored-name.txt").is_file());
+    assert!(stdout.contains("Security receipt (local CLI output only)"));
+    assert!(stdout.contains("Operation: open/decrypt"));
+    assert!(stdout.contains(&format!("Package path: {}", package.display())));
+    assert!(stdout.contains(&format!("Package SHA-256: {package_hash}")));
+    assert!(stdout.contains("Package format version: 1"));
+    assert!(stdout.contains("Package mode: single file"));
+    assert!(stdout.contains("Crypto backend/mode: age v1 X25519"));
     assert!(stdout.contains("Decryption succeeded: yes"));
     assert!(stdout.contains("Integrity verified: yes"));
     assert!(stdout.contains("Original filename restored: yes"));
+    assert!(stdout.contains(&format!(
+        "Restored output path: {}",
+        restored_output.display()
+    )));
+    assert!(stdout.contains(
+        "WARNING: sender identity and authorship are not verified; PQSend does not implement signatures"
+    ));
+    assert!(!stdout.contains("Sender identity verified: yes"));
+    assert!(!stdout.contains("Authorship verified: yes"));
 }
 
 #[cfg(unix)]
@@ -318,6 +366,29 @@ fn package_bytes_do_not_contain_original_filename() {
     assert!(!package_bytes
         .windows(filename.len())
         .any(|window| window == filename.as_bytes()));
+}
+
+#[test]
+fn receipt_time_is_local_output_only_and_not_package_metadata() {
+    let temporary = TempDir::new().expect("temporary directory");
+    let (_identity, recipient) = keygen(temporary.path(), "receipt-time");
+    let input = temporary.path().join("input.txt");
+    let package = temporary.path().join("bundle.pqsend");
+    fs::write(&input, b"body").expect("write input");
+
+    let pack_output = pack(&input, &recipient, &package);
+    let pack_stdout = String::from_utf8_lossy(&pack_output.stdout);
+    assert!(pack_stdout.contains("Local receipt time (Unix seconds; not package metadata): "));
+
+    let package_bytes = fs::read(&package).expect("read package");
+    assert!(!package_bytes
+        .windows("Local receipt time".len())
+        .any(|window| window == b"Local receipt time"));
+
+    let mut command = pqsend();
+    command.arg("inspect").arg(package);
+    let inspect_output = success(command);
+    assert!(!String::from_utf8_lossy(&inspect_output.stdout).contains("receipt time"));
 }
 
 #[test]

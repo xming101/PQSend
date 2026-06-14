@@ -124,14 +124,16 @@ limitations.
 ## Receipt boundary
 
 Security receipts are local user-facing command output. They summarize selected
-recipient information and completed local checks after successful operations.
-PQSend does not embed receipts in `.pqsend` packages or transmit them.
+recipient information, exact observed package hashes, local receipt times, and
+completed local checks after successful operations. PQSend does not embed
+receipts in `.pqsend` packages or transmit them. Receipt time is local CLI
+output, not package metadata or a package creation timestamp.
 
 Receipts are not signatures, authorship proof, identity proof, delivery proof,
 or external evidence. Terminal logs and other captured receipt output are
 local plaintext metadata.
 
-See [Security Receipts](security-receipts.md) for receipt fields and privacy
+See [Security Receipts](RECEIPTS.md) for receipt fields and privacy
 rules.
 
 ## Integrity and extraction
