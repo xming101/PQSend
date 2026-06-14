@@ -9,10 +9,10 @@ promise. Implementations must fail closed on unknown, malformed,
 non-canonical, or oversized input.
 
 The repository implements this format in `pqsend-core` and exposes it through a
-narrow CLI using explicit age X25519 key files. The CLI does not integrate the
-contact book or implement folders, multiple recipients, signatures, password
-mode, post-quantum encryption, GUI, networking (including Wi-Fi transfer),
-relay services, telemetry, or chat.
+narrow CLI using either an explicit age X25519 recipient file or a locally
+resolved contact. The CLI does not implement folders, multiple recipients,
+signatures, password mode, post-quantum encryption, GUI, networking (including
+Wi-Fi transfer), relay services, telemetry, or chat.
 
 ## Product and cryptographic boundary
 
@@ -123,7 +123,7 @@ not write or overwrite files.
 
 ## CLI filesystem behavior
 
-The v0.1 CLI uses only explicit key files:
+The v0.1 CLI uses explicit key files and local contacts:
 
 - `keygen` creates one age X25519 identity file and its matching public
   recipient file without overwriting either destination. It rejects equivalent
@@ -131,8 +131,10 @@ The v0.1 CLI uses only explicit key files:
   publishes the public recipient before the private identity so a failed
   operation does not leave an unexpected private key.
 - `pack` accepts one regular file of at most `MAX_FILE_BYTES`, encrypts only its
-  validated UTF-8 basename, requires an explicit recipient file and output
-  package path, and publishes the completed package without overwriting.
+  validated UTF-8 basename, requires exactly one of `--recipient-file` or
+  `--to <contact>` plus an output package path, and publishes the completed
+  package without overwriting. `--allow-unverified` is valid only with `--to`.
+  Explicit recipient-file packing does not consult contact verification.
 - `open` requires an explicit identity file and output directory. It
   authenticates and validates the complete package before restoring the
   filename, writes through a temporary file in the output directory, and
@@ -150,14 +152,77 @@ standard output; receipts are not embedded in packages.
 
 The separate experimental contact book stores contacts in `contacts.toml`
 below an OS-appropriate local config directory. It is not integrated with
-package creation or opening. Contacts contain a case-sensitive local name,
-normalized opaque public-key text, a SHA-256 comparison fingerprint, and a
-local manual `verified` boolean.
+package opening. For `pack --to <contact>`, the CLI resolves exactly one
+validated runtime contact and passes only its parsed `AgeRecipient` to the
+unchanged package API. The incompatible store format is
+`experimental-v1`; `experimental-v0` and unknown formats are rejected without
+automatic migration. Users must explicitly re-import and re-verify old
+contacts.
 
-The fingerprint is not encryption, a signature, a certificate, or proof of
-identity. Contact names contain 1 to 64 ASCII letters, numbers, `_`, `-`, or
-`.` characters and reject separators, traversal forms, whitespace, controls,
-and duplicates. Contact replacement is not implemented.
+Each serialized contact contains only:
+
+```toml
+name = "Alice"
+recipient_type = "age-x25519"
+recipient = "<canonical age X25519 recipient>"
+verified_fingerprint = "<optional full fingerprint>"
+```
+
+Unknown fields and malformed records reject the entire store. Raw imported
+text, comments, whitespace, source filenames, generic fingerprints, and
+independent verification booleans are not stored. Import accepts exactly one
+age X25519 recipient and stores its canonical parse-and-reserialize form. It
+rejects empty or malformed input, identities, SSH and plugin recipients,
+passphrase modes, post-quantum recipients, and multiple keys. Recipient import
+requires a regular UTF-8 file no larger than 16 KiB.
+
+The full fingerprint is:
+
+```text
+pqsend-contact-v1:hex(SHA-256(
+  "pqsend-contact-fingerprint-v1\0age-x25519\0" || canonical_recipient
+))
+```
+
+Hexadecimal output is lowercase. The short fingerprint is the first 96 bits of
+the same digest and is display-only; it is never used for verification or
+duplicate decisions. Stored verification is valid only when
+`verified_fingerprint` exactly matches the recomputed full fingerprint.
+Malformed or mismatched stored verification rejects the entire store.
+`contact verify` displays the canonical recipient and full fingerprint and
+requires exact full-fingerprint confirmation.
+
+Contact names contain 1 to 64 ASCII letters, numbers, `_`, `-`, or `.`
+characters and reject separators, traversal forms, whitespace, and controls.
+Capitalization is preserved for display, while lookup and uniqueness are
+ASCII-case-insensitive. Duplicate canonical recipients are rejected. Contact
+replacement and aliases are not implemented.
+
+Verification requires comparison through an independent authenticated channel.
+It is not a signature, certificate, identity proof, proof of key control,
+delivery proof, or authorship proof. Local contact-store compromise can change
+recipients and verification bindings. Contact names and fingerprints may
+appear in local CLI output and receipts but must never be included in
+`.pqsend` package metadata.
+
+`pack --to <contact>` blocks an unverified contact by default and reports the
+contact name, full fingerprint, and verification instruction. The
+`--allow-unverified` flag permits an explicit one-command override, reports the
+override in local output, and does not alter stored verification. A successful
+contact pack receipt may display the contact name, verification status, and
+short fingerprint locally. None of those values, nor the full fingerprint or
+recipient string, are supplied to package framing or the encrypted inner
+manifest.
+
+Writes use a completed same-directory temporary file and atomic rename without
+first truncating the existing store. On Unix, the final config directory and
+store must be non-symlinks, must be a directory and regular file respectively,
+and must have modes `0700` and `0600`. Type and privacy checks occur before
+store contents are read and again after the bounded read. Contact stores are
+limited to 1 MiB and 1,024 contacts. Windows currently lacks equivalent ACL
+privacy enforcement, and atomic replacement behavior is platform-dependent.
+The store does not currently use an exclusive lock, so concurrent writers can
+lose updates.
 
 The original filename is encrypted inside the package, but an outer `.pqsend`
 filename chosen by the user or transport remains public metadata. Users who

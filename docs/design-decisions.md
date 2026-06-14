@@ -59,15 +59,30 @@ until a reviewed hybrid future-resistant backend is implemented and tested.
 Draft package concepts support design discussion and experimental
 implementation. They carry no compatibility promise before `v1.0.0`.
 
-## DD-010: Provisional opaque-text contact fingerprints
+## DD-010: Canonical X25519 contacts and recipient-bound verification
 
-The first contact book intentionally precedes encryption-backend selection.
-Public keys are therefore stored as opaque normalized UTF-8 text, and contacts
-use grouped uppercase SHA-256 fingerprints over that normalized text. This
-fingerprint is a stable local comparison identifier, not encryption or proof of
-identity. Verification is only a deliberate local boolean. The TOML contact
-format and fingerprint approach remain experimental and may change when a
-reviewed encryption backend is selected.
+The hardened contact book accepts exactly one recipient through the narrow age
+X25519 backend adapter and stores only its canonical parse-and-reserialize
+form. The incompatible `experimental-v1` TOML format rejects old stores,
+unknown fields, malformed records, non-canonical recipients, duplicate
+case-insensitive names, duplicate recipients, and invalid verification
+bindings.
+
+Full fingerprints are domain-separated and versioned:
+`pqsend-contact-v1:hex(SHA-256("pqsend-contact-fingerprint-v1\0age-x25519\0" ||
+canonical_recipient))`. Short fingerprints are the first 96 bits and are
+display-only. Verification stores the recomputed full fingerprint rather than
+an independent boolean, so it is bound to the exact recipient. Verification
+still records only a deliberate local comparison through an independent
+authenticated channel; it is not identity proof, proof of key control,
+delivery proof, or authorship proof.
+
+Store updates use same-directory temporary files and atomic replacement. Unix
+paths must be non-symlinks with private `0700`/`0600` modes, checked before
+bounded store reads. Recipient files are limited to 16 KiB, and stores are
+limited to 1 MiB and 1,024 contacts. No locking is currently used, so
+concurrent writers can lose updates. Windows ACL privacy and atomic replacement
+guarantees remain limitations.
 
 ## DD-011: Narrow Rust age X25519 backend adapter
 
@@ -113,3 +128,17 @@ the authenticated name, create collisions, or turn different hostile inputs
 into the same output name. Requiring a canonical safe filename keeps v0.1
 single-file extraction predictable and prevents the authenticated name from
 selecting a path outside the chosen output directory.
+
+## DD-013: Contacts resolve only at the CLI package boundary
+
+`pack --to <contact>` resolves one validated local contact to its parsed
+`AgeRecipient`, then calls the unchanged package API with only that recipient.
+The package core does not receive the contact name, fingerprint, or
+verification status. Consequently contact selection does not change the
+public envelope or encrypted inner manifest.
+
+Verified contacts pack by default. Unverified contacts fail with their full
+fingerprint and verification instructions unless the user explicitly supplies
+`--allow-unverified`; that override affects only the current command and is
+reported in local output. Explicit `--recipient-file` packing remains
+independent of the contact store.
