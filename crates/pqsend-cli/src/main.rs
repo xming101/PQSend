@@ -275,13 +275,19 @@ fn resolve_pack_recipient(
             } else {
                 "unverified; explicit override used"
             };
+            let warning = if contact.is_verified() {
+                ""
+            } else {
+                "\nWarning: unverified contact override used for this operation only"
+            };
             Ok(ResolvedPackRecipient {
                 age_recipient: contact.age_recipient().clone(),
                 receipt: format!(
-                    "Recipient source: contact\nContact name: {}\nContact verification: {}\nShort fingerprint: {}",
+                    "Recipient source: contact\nContact name: {}\nContact verification: {}\nShort fingerprint: {}{}",
                     contact.name(),
                     verification,
-                    contact.short_fingerprint()
+                    contact.short_fingerprint(),
+                    warning
                 ),
             })
         }

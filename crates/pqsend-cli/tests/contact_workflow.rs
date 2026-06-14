@@ -293,6 +293,7 @@ fn unverified_contact_is_blocked_unless_explicitly_overridden() {
     let blocked_package = temporary.path().join("blocked.pqsend");
     let explicit_package = temporary.path().join("explicit.pqsend");
     let override_package = temporary.path().join("override.pqsend");
+    let blocked_after_override_package = temporary.path().join("blocked-after-override.pqsend");
     fs::write(&input, b"unverified contact payload").expect("write input");
     let store_path = config_dir(&home).join("contacts.toml");
     let store_before_override = fs::read(&store_path).expect("read store before override");
@@ -326,12 +327,28 @@ fn unverified_contact_is_blocked_unless_explicitly_overridden() {
         .contains("Recipient source: explicit recipient file"));
 
     let override_output = pack_to(&home, &input, "Bob", &override_package, true);
-    assert!(String::from_utf8_lossy(&override_output.stdout)
-        .contains("Contact verification: unverified; explicit override used"));
+    let override_stdout = String::from_utf8_lossy(&override_output.stdout);
+    assert!(override_stdout.contains("Contact verification: unverified; explicit override used"));
+    assert!(override_stdout
+        .contains("Warning: unverified contact override used for this operation only"));
     assert_eq!(
         fs::read(&store_path).expect("read store after override"),
         store_before_override
     );
+
+    let mut blocked_after_override = pqsend(&home);
+    blocked_after_override
+        .arg("pack")
+        .arg(&input)
+        .arg("--to")
+        .arg("Bob")
+        .arg("--out")
+        .arg(&blocked_after_override_package);
+    assert!(
+        String::from_utf8_lossy(&failure(blocked_after_override).stderr)
+            .contains("contact `Bob` is unverified")
+    );
+    assert!(!blocked_after_override_package.exists());
 
     let mut list = pqsend(&home);
     list.arg("contact").arg("list");

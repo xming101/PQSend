@@ -39,6 +39,7 @@ An explicit unverified override instead prints:
 
 ```text
 Contact verification: unverified; explicit override used
+Warning: unverified contact override used for this operation only
 ```
 
 The override affects only that command and does not change the contact store.
