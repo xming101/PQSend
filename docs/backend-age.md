@@ -41,9 +41,8 @@ passphrase/scrypt encryption or multiple-recipient encryption. Decryption
 rejects ciphertext unless its header contains exactly one X25519 recipient
 stanza plus the age format's permitted GREASE stanzas.
 
-X25519 is not post-quantum-secure. This adapter must not be described as
-post-quantum protection or harvest-now-decrypt-later resistance. A reviewed
-post-quantum or hybrid backend remains a later roadmap item.
+X25519 is not post-quantum-secure and does not protect against quantum attacks
+against X25519. A reviewed future hybrid backend remains a later roadmap item.
 
 ## Authentication and errors
 

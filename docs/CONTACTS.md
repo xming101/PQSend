@@ -97,5 +97,5 @@ re-imported and independently re-verified.
 The current store accepts one canonical age X25519 recipient per contact.
 Contact aliases are unique ASCII-case-insensitively, and duplicate canonical
 recipients are rejected. See [the draft specification](../SPEC.md) and
-[threat model](../THREAT_MODEL.md) for the normative implemented behavior and
+[threat model](THREAT-MODEL.md) for the normative implemented behavior and
 broader security limitations.

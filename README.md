@@ -174,9 +174,9 @@ protect compromised endpoints or private keys.
 ## Documentation
 
 - [Draft specification](SPEC.md)
-- [Package format](docs/package-format.md)
-- [Security model and cryptographic boundary](SPEC.md#product-and-cryptographic-boundary)
-- [Threat model](THREAT_MODEL.md)
+- [Package format](docs/FORMAT.md)
+- [Security model](docs/SECURITY-MODEL.md)
+- [Threat model](docs/THREAT-MODEL.md)
 - [Contact trust store](docs/CONTACTS.md)
 - [Security receipts](docs/security-receipts.md)
 - [age backend boundary](docs/backend-age.md)
@@ -194,8 +194,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-Read [SPEC.md](SPEC.md) and [THREAT_MODEL.md](THREAT_MODEL.md) before proposing
-behavior changes.
+Read [SPEC.md](SPEC.md), the [security model](docs/SECURITY-MODEL.md), and the
+[threat model](docs/THREAT-MODEL.md) before proposing behavior changes.
 
 ## License
 

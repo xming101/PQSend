@@ -14,6 +14,9 @@ resolved contact. The CLI does not implement folders, multiple recipients,
 signatures, password mode, post-quantum encryption, GUI, networking (including
 Wi-Fi transfer), relay services, telemetry, or chat.
 
+The canonical implementer-facing wire-format description is
+`docs/FORMAT.md`.
+
 ## Product and cryptographic boundary
 
 PQSend is a package and safety layer, not a new cryptographic construction. The
@@ -232,6 +235,7 @@ original file.
 ## Compatibility and change policy
 
 A package-format or security-boundary change requires corresponding updates to
-this document, `docs/package-format.md`, `docs/design-decisions.md`,
-`THREAT_MODEL.md`, and security-sensitive tests before implementation is
-complete.
+this document, `docs/FORMAT.md`, `docs/design-decisions.md`,
+`docs/SECURITY-MODEL.md`, `docs/THREAT-MODEL.md`, the top-level
+`THREAT_MODEL.md` summary, and security-sensitive tests before implementation
+is complete.
