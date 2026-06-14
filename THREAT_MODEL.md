@@ -11,9 +11,9 @@ unstable and may change incompatibly before `v1.0.0`.
 
 `v0.1` covers one file encrypted locally for exactly one recipient. Folder
 support, multiple recipients, signatures, password mode, post-quantum
-encryption, GUI, relay server, networking, telemetry, and chat are out of
-scope. The implemented v0.1 backend is X25519-only and is not post-quantum
-secure.
+encryption, GUI, relay server, networking (including Wi-Fi transfer),
+telemetry, and chat are out of scope. The implemented v0.1 backend is
+X25519-only and is not post-quantum secure.
 
 ## Assets
 
