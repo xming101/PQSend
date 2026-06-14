@@ -1,104 +1,54 @@
 # PQSend
 
-PQSend is an experimental, local-first encrypted file-sending package layer for
-humans. It is intended to create portable `.pqsend` files that can travel
-through email, cloud storage, USB, messaging apps, or other untrusted channels
-while encryption and decryption happen locally.
-
-PQSend is not trying to provide stronger cryptography than tools such as
-[`age`](https://age-encryption.org/). Its intended value is an opinionated
-package and user-safety layer around established encryption backends:
-
-- a `.pqsend` package format with minimal public metadata
-- an encrypted internal manifest, including the original filename
-- encrypted filenames and, in a later milestone, encrypted folder structure
-- a local recipient trust store with explicit verification status
-- human-readable security receipts
-- safe defaults for package creation and extraction
-- local-first operation, no telemetry, and no required server
+PQSend is an experimental encrypted package format and reference CLI for private file delivery.
 
 > [!WARNING]
-> `v0.1.0-alpha.1` is experimental, unaudited, X25519-only, not
-> post-quantum-secure, and not ready for sensitive real-world data. The
-> `.pqsend` package format is unstable and may change incompatibly before
-> `v1.0.0`.
+> PQSend is experimental and unaudited. It currently supports only age v1 with
+> X25519, is not yet post-quantum-secure, and is not ready for sensitive
+> real-world data. The `.pqsend` package format is unstable and may change
+> incompatibly before `v1.0.0`.
 
-## Security approach
+PQSend creates portable `.pqsend` files that can travel through email, cloud
+storage, USB, messaging apps, or other channels while package creation and
+opening happen locally. Its focus is hidden public metadata, local recipient
+trust, local security receipts, and a future post-quantum migration path.
 
-PQSend avoids custom cryptography. The experimental `pqsend-core` backend
-adapter uses the Rust `age` crate directly for binary age v1 encryption to one
-X25519 recipient and decryption with one X25519 identity. It does not shell out
-to an external executable. Security depends on the backend, correct
-implementation, dependency security, recipient-key verification, and private-key
-protection.
+## Why PQSend exists
 
-The design is intended to be post-quantum-ready through versioned packages and
-backend agility. That is an evolution goal, not a claim that current or early
-PQSend packages resist cryptographically relevant quantum computers. A future
-hybrid future-resistant backend would require its own review, specification,
-tests, and threat-model update.
+PQSend does not claim stronger cryptography than its encryption backend. The
+current implementation delegates recipient encryption and authenticated
+payload protection to the Rust [`age`](https://age-encryption.org/) crate.
+PQSend adds an opinionated package and user-safety layer around that backend:
 
-## Current status
+- a strict `.pqsend` package envelope with minimal, fixed public metadata
+- an encrypted internal manifest containing the original filename
+- an original filename that is hidden from public package metadata
+- a local recipient trust store with recipient-bound verification
+- local, human-readable security receipts
+- a reference CLI with conservative package creation and extraction behavior
+- package format documentation and deterministic format tests, with published
+  cross-platform fixture test vectors still planned
 
-The repository currently contains an experimental `v0.1` package core and CLI
-workflow with a local recipient trust store:
+The versioned package envelope and backend identifier provide a path for
+evaluating a reviewed future post-quantum or hybrid backend. They do not make
+current X25519 packages post-quantum-secure.
 
-- a Rust workspace with `pqsend-core` and `pqsend-cli`
-- working `init` and `contact` CLI commands
-- a tested binary age v1 X25519 encryption/decryption adapter
-- strict single-file `.pqsend` package creation, opening, and public inspection
-- explicit age X25519 key-file and verified-contact package CLI commands
-- early, non-normative design and security documentation
+## Current features
 
-There is no folder support, multiple-recipient support, networking (including
-Wi-Fi transfer), GUI, password mode, signing, relay service, chat, sender
-identity management, or post-quantum protection. The current X25519 backend is
-not post-quantum-secure.
+- `keygen` for one age X25519 identity and matching public recipient file
+- `pack` to create a one-file package for one explicit recipient or local
+  contact
+- `open` to decrypt, validate, and restore the authenticated original filename
+- `inspect` to display only the fixed public envelope and package size
+- a fixed 20-byte public envelope and encrypted internal manifest
+- an explicit key-file workflow
+- a contact-backed workflow with local fingerprints and verification state
+- local security receipts for successful package creation and opening
+- overwrite refusal and safe single-file extraction checks
 
-The `v0.1` milestone is deliberately narrow: encrypt and decrypt one file for
-one recipient using an existing backend and a draft `.pqsend` package.
-Folder support, multiple recipients, signatures, password mode, GUI, relay
-server, Wi-Fi transfer, and chat are out of scope until later milestones.
+## Quick start
 
-## Contacts / local recipient trust store
-
-The implemented local contact commands are:
-
-```text
-pqsend init
-pqsend contact add <name> <recipient_file>
-pqsend contact list
-pqsend contact fingerprint <name>
-pqsend contact verify <name>
-```
-
-Contacts map local convenience aliases to canonical age X25519 recipients.
-Full fingerprints bind verification to the exact recipient key and must be
-compared through an independent authenticated channel. Short fingerprints are
-display-only. Verification is a local decision, not proof of identity,
-authorship, delivery, or continuing key control.
-
-The contact store is local plaintext state, and local compromise can replace
-recipients and verification bindings. Contact aliases, fingerprints, and
-verification status may appear in local terminal output and receipts, but are
-never embedded in `.pqsend` package metadata. The current backend is
-X25519-only and not post-quantum-secure. See
-[Contacts: Local Recipient Trust Store](docs/CONTACTS.md) for the verification
-model, package boundary, limitations, and alpha-format compatibility.
-
-Encrypt to a verified contact:
-
-```sh
-cargo run -p pqsend-cli -- pack report.pdf \
-  --to bob \
-  --out pqsend-transfer-001.pqsend
-```
-
-An unverified contact is rejected unless the sender deliberately adds
-`--allow-unverified`; the successful local receipt prominently records that
-override.
-
-## Explicit key-file quick start
+Install the stable Rust toolchain and run commands from the repository root.
 
 Generate one private age X25519 identity and its matching public recipient:
 
@@ -108,8 +58,9 @@ cargo run -p pqsend-cli -- keygen \
   --public-out recipient.txt
 ```
 
-Keep `identity.txt` secret. Give only `recipient.txt` to a sender. Encrypt one
-regular file of at most 64 MiB into an explicitly named package:
+Keep `identity.txt` secret. Give only `recipient.txt` to a sender.
+
+Create a package using the explicit recipient file:
 
 ```sh
 cargo run -p pqsend-cli -- pack report.pdf \
@@ -117,33 +68,125 @@ cargo run -p pqsend-cli -- pack report.pdf \
   --out pqsend-transfer-001.pqsend
 ```
 
-The outer package filename is public transport metadata. If you want to avoid
-leaking the original filename, do not name the outer `.pqsend` package after
-the original file. Inspect only its public 20-byte envelope, then decrypt it:
+Inspect the package's public envelope without decrypting it:
 
 ```sh
 cargo run -p pqsend-cli -- inspect pqsend-transfer-001.pqsend
+```
 
+Open the package into a new or existing output directory:
+
+```sh
 cargo run -p pqsend-cli -- open pqsend-transfer-001.pqsend \
   --identity-file identity.txt \
   --out opened
 ```
 
 Package creation, key generation, and extraction refuse to overwrite existing
-files. `open` restores the authenticated original basename only after complete
-decryption and validation, rejects a symbolic link as the final output-directory
-component, and creates a missing output directory privately on Unix. Contacts
-are used only by `pack --to`; explicit `--recipient-file` packing does not
-consult contact verification.
+files. The current one-file input limit is 64 MiB.
 
-See [docs/backend-age.md](docs/backend-age.md) for the implemented backend
-boundary and limitations. See
-[the `v0.1.0-alpha.1` release notes](docs/releases/v0.1.0-alpha.1.md) for the
-included scope and known limitations.
+### Contact-backed workflow
+
+Contacts are local convenience aliases for canonical age X25519 recipients.
+Initialize the local store, add a recipient, display its fingerprint, and
+verify the full fingerprint after comparing it through an independent
+authenticated channel:
+
+```sh
+cargo run -p pqsend-cli -- init
+cargo run -p pqsend-cli -- contact add bob recipient.txt
+cargo run -p pqsend-cli -- contact fingerprint bob
+cargo run -p pqsend-cli -- contact verify bob
+```
+
+Create a package for the verified contact:
+
+```sh
+cargo run -p pqsend-cli -- pack report.pdf \
+  --to bob \
+  --out pqsend-transfer-002.pqsend
+```
+
+Unverified contacts are blocked by default. `--allow-unverified` is an explicit
+one-command override and is recorded in the local receipt. Contact verification
+is a local decision about an exact recipient key; it is not identity proof, a
+signature, proof of delivery, or proof of key control.
+
+## Metadata privacy
+
+### Hidden from public package metadata
+
+- file contents
+- original filename and authenticated internal manifest
+- encrypted file hash
+- contact alias, fingerprint, and verification status
+- sender identity, notes, and timestamps, which are not package fields
+
+Contact aliases and fingerprints are not placed anywhere in the package,
+including the encrypted manifest. They may appear in local terminal output and
+local receipts.
+
+### Still visible
+
+- total package size and approximate plaintext size
+- transfer timing and other transport metadata outside PQSend
+- the outer `.pqsend` filename chosen by the user
+- package format version, single-file mode, and age v1 X25519 backend from the
+  public envelope
+- the use of age and an X25519 recipient stanza in the encrypted payload
+
+Choose an outer package filename unrelated to the original file when the
+original name must not be exposed by the transport.
+
+## Security model
+
+PQSend avoids custom cryptography. The current backend adapter uses the Rust
+`age` crate directly for binary age v1 encryption to exactly one X25519
+recipient and decryption with exactly one X25519 identity. Security depends on
+the backend, implementation correctness, dependencies, recipient-key
+verification, endpoint security, and private-key protection.
+
+Opening validates the public envelope before decryption, authenticates and
+validates the complete inner plaintext before publishing output, rejects unsafe
+filenames, prevents path traversal through the authenticated filename, and
+refuses implicit overwrite.
+
+Local security receipts summarize selected recipient and completed checks. They
+are command output only, are not embedded in packages, and are not signatures
+or external proof.
+
+## Limitations
+
+- one file and one recipient per package
+- no folder or multi-file packages yet
+- no multiple-recipient packages yet
+- no post-quantum cryptography yet
+- no signatures or proof of authorship
+- no password mode
+- no GUI, networking, Wi-Fi transfer, or relay service
+- no stable package-format compatibility before `v1.0.0`
+- no external security audit
+
+PQSend provides private file delivery, not anonymous sending. It does not hide
+transport-level sender, recipient, timing, or size metadata, and it does not
+protect compromised endpoints or private keys.
+
+## Documentation
+
+- [Draft specification](SPEC.md)
+- [Package format](docs/FORMAT.md)
+- [Security model](docs/SECURITY-MODEL.md)
+- [Threat model](docs/THREAT-MODEL.md)
+- [Contact trust store](docs/CONTACTS.md)
+- [Security receipts](docs/security-receipts.md)
+- [age backend boundary](docs/backend-age.md)
+- [Design decisions](docs/design-decisions.md)
+- [Roadmap](ROADMAP.md)
+- [Changelog](CHANGELOG.md)
 
 ## Development
 
-Install the stable Rust toolchain, then run:
+Run the repository completion checks:
 
 ```sh
 cargo fmt --all -- --check
@@ -151,8 +194,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-Read [SPEC.md](SPEC.md) and [THREAT_MODEL.md](THREAT_MODEL.md) before proposing
-behavior changes. See [ROADMAP.md](ROADMAP.md) for the planned sequence of work.
+Read [SPEC.md](SPEC.md), the [security model](docs/SECURITY-MODEL.md), and the
+[threat model](docs/THREAT-MODEL.md) before proposing behavior changes.
 
 ## License
 

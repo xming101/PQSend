@@ -1,7 +1,7 @@
 # Design Decisions
 
 This log records decisions that shape multiple parts of PQSend. It is not a
-substitute for `SPEC.md` or `THREAT_MODEL.md`.
+substitute for `SPEC.md`, `SECURITY-MODEL.md`, or `THREAT-MODEL.md`.
 
 ## DD-001: Local-first portable packages
 
@@ -50,9 +50,10 @@ authorship, proof of delivery, or proof of endpoint security.
 
 ## DD-008: Backend agility is not current post-quantum protection
 
-Versioned packages and backend identifiers make the design post-quantum-ready
-for future migration. PQSend must not claim harvest-now-decrypt-later resistance
-until a reviewed hybrid future-resistant backend is implemented and tested.
+Versioned packages and backend identifiers are part of a crypto-agile
+architecture intended to support a future post-quantum migration path. PQSend
+must not claim current post-quantum protection. A future hybrid backend requires
+separate review, implementation, and testing.
 
 ## DD-009: No stable pre-`v1.0.0` format
 

@@ -21,9 +21,11 @@ based on implemented, tested, and reviewed behavior rather than roadmap goals.
 - Treat contact-key verification, private-key protection, authenticated parsing,
   path traversal prevention, and overwrite prevention as security boundaries.
 
-PQSend may be described as post-quantum-ready only when referring to its planned
-backend agility. It must not imply current post-quantum protection. See
-`THREAT_MODEL.md` for intended protections and explicit limitations.
+PQSend has a crypto-agile architecture intended to support a future
+post-quantum migration path and possible future hybrid backend. It must not
+imply current post-quantum protection. See `docs/SECURITY-MODEL.md` for the
+implemented design boundaries and `docs/THREAT-MODEL.md` for intended
+protections and explicit limitations.
 
 ## Reporting a vulnerability
 
@@ -40,4 +42,5 @@ contact channel without including vulnerability details.
 Use the security design issue template for proposals that alter trust
 assumptions, package metadata, cryptographic dependencies, key handling,
 receipts, or extraction behavior. Security-sensitive behavior requires tests
-and matching updates to `SPEC.md` and `THREAT_MODEL.md`.
+and matching updates to `SPEC.md`, `docs/SECURITY-MODEL.md`,
+`docs/THREAT-MODEL.md`, and the top-level `THREAT_MODEL.md` summary.
