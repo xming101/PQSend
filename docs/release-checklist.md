@@ -56,6 +56,7 @@ Scope reviewed for the first experimental encrypted package alpha:
   packages, encrypted internal manifest, explicit key files, `keygen`, `pack`,
   `open`, `inspect`, and local security receipts documented
 - [x] unsupported features and security limitations documented
+- [x] networking and Wi-Fi transfer explicitly documented as out of scope
 - [x] 64 MiB v0.1 file limit documented
 - [x] outer package filename leakage warning documented
 - [x] pre-v1.0 format instability documented

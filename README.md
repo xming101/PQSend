@@ -51,14 +51,14 @@ workflow plus a separate local contact book:
 - early, non-normative design and security documentation
 
 There is no contact-backend integration, folder support, multiple-recipient
-support, networking, GUI, password mode, signing, relay service, chat, sender
-identity management, or post-quantum protection. The current X25519 backend is
-not post-quantum-secure.
+support, networking (including Wi-Fi transfer), GUI, password mode, signing,
+relay service, chat, sender identity management, or post-quantum protection.
+The current X25519 backend is not post-quantum-secure.
 
 The `v0.1` milestone is deliberately narrow: encrypt and decrypt one file for
 one recipient using an existing backend and a draft `.pqsend` package.
 Folder support, multiple recipients, signatures, password mode, GUI, relay
-server, and chat are out of scope until later milestones.
+server, Wi-Fi transfer, and chat are out of scope until later milestones.
 
 ## Contact book
 
