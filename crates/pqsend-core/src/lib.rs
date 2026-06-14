@@ -14,7 +14,8 @@ pub use backend::age::{
     AgeRecipient,
 };
 pub use contact::{
-    Contact, ContactBook, ContactError, InitResult, VerifyResult, CONTACTS_FILE_NAME,
+    full_fingerprint, short_fingerprint, Contact, ContactBook, ContactError, InitResult,
+    VerifyResult, CONTACTS_FILE_NAME, CONTACT_FINGERPRINT_PREFIX, CONTACT_RECIPIENT_TYPE,
     CONTACT_STORE_FORMAT,
 };
 pub use package::{

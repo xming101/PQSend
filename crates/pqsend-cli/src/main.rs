@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use age::secrecy::{ExposeSecret, SecretString};
-use clap::{Parser, Subcommand};
+use clap::{ArgGroup, Parser, Subcommand};
 use directories::BaseDirs;
 use pqsend_core::{
     create_package, open_package, AgeIdentity, AgeRecipient, Contact, ContactBook, PackageError,
@@ -46,13 +46,25 @@ enum Command {
         #[command(subcommand)]
         command: ContactCommand,
     },
-    /// Encrypt one file into a package using an explicit recipient file.
+    /// Encrypt one file into a package for one explicit recipient or contact.
+    #[command(group(
+        ArgGroup::new("recipient_source")
+            .required(true)
+            .multiple(false)
+            .args(["recipient_file", "to"])
+    ))]
     Pack {
         /// Regular file to package.
         input: PathBuf,
         /// File containing exactly one age X25519 recipient.
         #[arg(long)]
-        recipient_file: PathBuf,
+        recipient_file: Option<PathBuf>,
+        /// Local contact name.
+        #[arg(long)]
+        to: Option<String>,
+        /// Permit encryption to an unverified contact for this command only.
+        #[arg(long, requires = "to")]
+        allow_unverified: bool,
         /// New package file.
         #[arg(long)]
         out: PathBuf,
@@ -77,12 +89,12 @@ enum Command {
 
 #[derive(Debug, Subcommand)]
 enum ContactCommand {
-    /// Add a contact from a public key file.
+    /// Add a contact from an age X25519 recipient file.
     Add {
         /// Local name for the contact.
         name: String,
-        /// File containing the contact's public key.
-        public_key_file: PathBuf,
+        /// File containing exactly one age X25519 recipient.
+        recipient_file: PathBuf,
     },
     /// List contacts.
     List,
@@ -91,7 +103,7 @@ enum ContactCommand {
         /// Contact name.
         name: String,
     },
-    /// Mark a contact as verified.
+    /// Verify a contact by exact full-fingerprint confirmation.
     Verify {
         /// Contact name.
         name: String,
@@ -132,29 +144,41 @@ fn execute(command: Command, config_dir: Option<&Path>) -> Result<String, Box<dy
             match command {
                 ContactCommand::Add {
                     name,
-                    public_key_file,
+                    recipient_file,
                 } => {
-                    let contact = contact_book.add(&name, public_key_file)?;
+                    let contact = contact_book.add(&name, recipient_file)?;
                     format!(
-                        "Added contact {}\nFingerprint: {}\nVerified: no",
-                        contact.name, contact.fingerprint
+                        "Added contact {}\nRecipient type: {}\nCanonical recipient: {}\nFull fingerprint: {}\nShort fingerprint: {}\nVerified: no",
+                        contact.name(),
+                        contact.recipient_type(),
+                        contact.recipient(),
+                        contact.full_fingerprint(),
+                        contact.short_fingerprint()
                     )
                 }
                 ContactCommand::List => format_contacts(&contact_book.list()?),
                 ContactCommand::Fingerprint { name } => {
-                    format!("{name}: {}", contact_book.fingerprint(&name)?)
+                    format_contact_fingerprint(&contact_book.contact(&name)?)
                 }
-                ContactCommand::Verify { name } => match contact_book.verify(&name)? {
-                    VerifyResult::Verified => format!("Marked contact {name} as verified."),
-                    VerifyResult::AlreadyVerified => format!("Contact {name} is already verified."),
-                },
+                ContactCommand::Verify { name } => {
+                    verify_contact_interactively(&contact_book, &name)?
+                }
             }
         }
         Command::Pack {
             input,
             recipient_file,
+            to,
+            allow_unverified,
             out,
-        } => pack(&input, &recipient_file, &out)?,
+        } => pack(
+            &input,
+            recipient_file.as_deref(),
+            to.as_deref(),
+            allow_unverified,
+            &out,
+            config_dir,
+        )?,
         Command::Open {
             package,
             identity_file,
@@ -195,18 +219,82 @@ fn keygen(identity_path: &Path, recipient_path: &Path) -> Result<String, Box<dyn
     ))
 }
 
-fn pack(input: &Path, recipient_file: &Path, output: &Path) -> Result<String, Box<dyn Error>> {
+fn pack(
+    input: &Path,
+    recipient_file: Option<&Path>,
+    contact_name: Option<&str>,
+    allow_unverified: bool,
+    output: &Path,
+    config_dir: Option<&Path>,
+) -> Result<String, Box<dyn Error>> {
     ensure_destination_absent(output, "package file")?;
-    let recipient = read_recipient(recipient_file)?;
+    let recipient =
+        resolve_pack_recipient(recipient_file, contact_name, allow_unverified, config_dir)?;
     let filename = input
         .file_name()
         .and_then(|name| name.to_str())
         .ok_or_else(|| cli_error("input file basename is not valid UTF-8"))?;
     let file_bytes = read_regular_file_bounded(input, MAX_FILE_BYTES, "input file")?;
-    let package = create_package(filename, &file_bytes, &recipient)?;
+    let package = create_package(filename, &file_bytes, &recipient.age_recipient)?;
     write_new_file(output, &package, "package file")?;
 
-    Ok("Encrypted locally: yes\nOriginal filename hidden in package: yes\nRecipient source: explicit recipient file\nBackend: age v1 X25519\nPost-quantum secure: no\nKnown leakage: package size, transfer timing, and outer package filename".to_owned())
+    Ok(format!(
+        "Encrypted locally: yes\nOriginal filename hidden in package: yes\n{}\nBackend: age v1 X25519\nPost-quantum secure: no\nKnown leakage: package size, transfer timing, and outer package filename",
+        recipient.receipt
+    ))
+}
+
+struct ResolvedPackRecipient {
+    age_recipient: AgeRecipient,
+    receipt: String,
+}
+
+fn resolve_pack_recipient(
+    recipient_file: Option<&Path>,
+    contact_name: Option<&str>,
+    allow_unverified: bool,
+    config_dir: Option<&Path>,
+) -> Result<ResolvedPackRecipient, Box<dyn Error>> {
+    match (recipient_file, contact_name) {
+        (Some(recipient_file), None) if !allow_unverified => Ok(ResolvedPackRecipient {
+            age_recipient: read_recipient(recipient_file)?,
+            receipt: "Recipient source: explicit recipient file".to_owned(),
+        }),
+        (None, Some(contact_name)) => {
+            let contact = contact_book(config_dir)?.contact(contact_name)?;
+            if !contact.is_verified() && !allow_unverified {
+                return Err(cli_error(&format!(
+                    "contact `{}` is unverified\nFull fingerprint: {}\nRun `pqsend contact verify {}` or use `--allow-unverified`",
+                    contact.name(),
+                    contact.full_fingerprint(),
+                    contact_name
+                )));
+            }
+            let verification = if contact.is_verified() {
+                "verified"
+            } else {
+                "unverified; explicit override used"
+            };
+            let warning = if contact.is_verified() {
+                ""
+            } else {
+                "\nWarning: unverified contact override used for this operation only"
+            };
+            Ok(ResolvedPackRecipient {
+                age_recipient: contact.age_recipient().clone(),
+                receipt: format!(
+                    "Recipient source: contact\nContact name: {}\nContact verification: {}\nShort fingerprint: {}{}",
+                    contact.name(),
+                    verification,
+                    contact.short_fingerprint(),
+                    warning
+                ),
+            })
+        }
+        _ => Err(cli_error(
+            "exactly one of `--recipient-file` or `--to` is required, and `--allow-unverified` is valid only with `--to`",
+        )),
+    }
 }
 
 fn open(
@@ -498,12 +586,49 @@ fn format_contacts(contacts: &[Contact]) -> String {
     for contact in contacts {
         output.push_str(&format!(
             "\n{}\t{}\t{}",
-            contact.name,
-            contact.fingerprint,
-            if contact.verified { "yes" } else { "no" }
+            contact.name(),
+            contact.full_fingerprint(),
+            if contact.is_verified() { "yes" } else { "no" }
         ));
     }
     output
+}
+
+fn format_contact_fingerprint(contact: &Contact) -> String {
+    format!(
+        "Contact: {}\nRecipient type: {}\nCanonical recipient: {}\nFull fingerprint: {}\nShort fingerprint: {}",
+        contact.name(),
+        contact.recipient_type(),
+        contact.recipient(),
+        contact.full_fingerprint(),
+        contact.short_fingerprint()
+    )
+}
+
+fn verify_contact_interactively(
+    contact_book: &ContactBook,
+    name: &str,
+) -> Result<String, Box<dyn Error>> {
+    let contact = contact_book.contact(name)?;
+    print!(
+        "{}\nType the full fingerprint exactly to verify this contact: ",
+        format_contact_fingerprint(&contact)
+    );
+    io::stdout().flush()?;
+
+    let mut confirmation = String::new();
+    io::stdin().read_line(&mut confirmation)?;
+    if confirmation.ends_with('\n') {
+        confirmation.pop();
+        if confirmation.ends_with('\r') {
+            confirmation.pop();
+        }
+    }
+
+    Ok(match contact_book.verify(name, &confirmation)? {
+        VerifyResult::Verified => format!("Marked contact {} as verified.", contact.name()),
+        VerifyResult::AlreadyVerified => format!("Contact {} is already verified.", contact.name()),
+    })
 }
 
 #[cfg(test)]
@@ -513,31 +638,53 @@ mod tests {
 
     #[test]
     fn contact_list_output_includes_name_fingerprint_and_verification_status() {
-        let contacts = [
-            Contact {
-                name: "Alice".to_owned(),
-                public_key: "opaque key".to_owned(),
-                fingerprint: "AAAA BBBB".to_owned(),
-                verified: false,
-            },
-            Contact {
-                name: "Bob".to_owned(),
-                public_key: "another opaque key".to_owned(),
-                fingerprint: "CCCC DDDD".to_owned(),
-                verified: true,
-            },
-        ];
+        let directory = TempDir::new().expect("temporary directory");
+        let book = ContactBook::new(directory.path().join("config"));
+        book.init().expect("initialize contact book");
+        let alice_recipient = age::x25519::Identity::generate().to_public().to_string();
+        let bob_recipient = age::x25519::Identity::generate().to_public().to_string();
+        let alice_path = directory.path().join("alice.txt");
+        let bob_path = directory.path().join("bob.txt");
+        fs::write(&alice_path, alice_recipient).expect("write Alice recipient");
+        fs::write(&bob_path, bob_recipient).expect("write Bob recipient");
+        let alice = book.add("Alice", alice_path).expect("add Alice");
+        let bob = book.add("Bob", bob_path).expect("add Bob");
+        book.verify("Bob", bob.full_fingerprint())
+            .expect("verify Bob");
+        let contacts = book.list().expect("list contacts");
 
         let output = format_contacts(&contacts);
 
         assert!(output.contains("NAME\tFINGERPRINT\tVERIFIED"));
-        assert!(output.contains("Alice\tAAAA BBBB\tno"));
-        assert!(output.contains("Bob\tCCCC DDDD\tyes"));
+        assert!(output.contains(&format!("Alice\t{}\tno", alice.full_fingerprint())));
+        assert!(output.contains(&format!("Bob\t{}\tyes", bob.full_fingerprint())));
     }
 
     #[test]
     fn empty_contact_list_has_clear_output() {
         assert_eq!(format_contacts(&[]), "No contacts found.");
+    }
+
+    #[test]
+    fn contact_fingerprint_output_includes_required_fields() {
+        let directory = TempDir::new().expect("temporary directory");
+        let book = ContactBook::new(directory.path().join("config"));
+        book.init().expect("initialize contact book");
+        let recipient = age::x25519::Identity::generate().to_public().to_string();
+        let path = directory.path().join("alice.txt");
+        fs::write(&path, &recipient).expect("write recipient");
+        let contact = book.add("Alice", path).expect("add Alice");
+
+        let output = format_contact_fingerprint(&contact);
+
+        assert!(output.contains("Contact: Alice"));
+        assert!(output.contains("Recipient type: age-x25519"));
+        assert!(output.contains(&format!("Canonical recipient: {recipient}")));
+        assert!(output.contains(&format!("Full fingerprint: {}", contact.full_fingerprint())));
+        assert!(output.contains(&format!(
+            "Short fingerprint: {}",
+            contact.short_fingerprint()
+        )));
     }
 
     #[test]

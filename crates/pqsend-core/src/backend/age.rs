@@ -22,6 +22,12 @@ impl fmt::Debug for AgeRecipient {
     }
 }
 
+impl fmt::Display for AgeRecipient {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+
 impl FromStr for AgeRecipient {
     type Err = AgeBackendError;
 

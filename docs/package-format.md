@@ -87,10 +87,13 @@ The v0.1 file-size limit is 64 MiB (`67,108,864` bytes).
 ## Scope and privacy
 
 The core creates and opens package bytes in memory. The v0.1 CLI wraps that core
-with explicit X25519 key files, single-file package creation, authenticated
-extraction, and public-envelope inspection. It does not integrate contacts.
-Folder entries, multiple recipients, password mode, signatures, post-quantum
-encryption, padding, notes, timestamps, and extension fields are absent.
+with explicit X25519 key files or local contact resolution, single-file package
+creation, authenticated extraction, and public-envelope inspection. Contact
+resolution passes only an `AgeRecipient` into the core. Contact names, full or
+short fingerprints, and verification status are absent from both the public
+envelope and encrypted inner plaintext. Folder entries, multiple recipients,
+password mode, signatures, post-quantum encryption, padding, notes, timestamps,
+and extension fields are absent.
 
 The original filename and SHA-256 value are encrypted. Approximate package size
 and the fact that age/X25519 is used remain visible. Users who want to avoid

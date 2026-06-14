@@ -5,9 +5,9 @@
 PQSend `v0.1.0-alpha.1` is experimental, unaudited, and must not be used for
 sensitive real-world data. The current implementation provides strict
 `.pqsend` `v0.1` package creation and opening, a binary age v1 X25519 backend
-adapter, an explicit-key-file CLI, and a separate local experimental contact
-book. Package behavior is not integrated with contacts. The package format is
-unstable and may change incompatibly before `v1.0.0`.
+adapter, an explicit-key-file CLI, and a local experimental contact book that
+can resolve one recipient for package creation. The package format is
+unchanged by contact selection and remains unstable before `v1.0.0`.
 
 `v0.1` covers one file encrypted locally for exactly one recipient. Folder
 support, multiple recipients, signatures, password mode, post-quantum
@@ -19,7 +19,7 @@ X25519-only and is not post-quantum secure.
 
 - plaintext file contents and original filenames
 - local private key material
-- contact public keys and verification status
+- contact recipients and recipient-bound verification fingerprints
 - package integrity and intended recipient selection
 - extracted files and destination filesystem
 
@@ -54,15 +54,18 @@ Errors are redacted and do not contain decrypted filenames, file contents, key
 material, or detailed backend errors. The core package API accepts and returns
 bytes only; it does not access filesystem paths, extract, or overwrite files.
 
-The CLI accepts exactly one explicit X25519 recipient or identity per key file.
-It bounds input and package reads, accepts only regular input files, uses only a
-validated basename, refuses overwrite, and publishes completed package and
-plaintext output files from temporary files. Opening authenticates and
-validates the complete package before creating a final plaintext file. It
-rejects a symbolic link as the final output-directory component and creates a
-missing output directory privately on Unix. Key generation rejects equivalent
-destinations, requires existing parent directories, and publishes the public
-recipient before the private identity.
+The CLI accepts exactly one explicit X25519 recipient file or one locally
+resolved contact for package creation, and exactly one identity per identity
+file for opening. Contact packing blocks unverified contacts unless the user
+supplies a one-command `--allow-unverified` override. It bounds input and
+package reads, accepts only regular input files, uses only a validated
+basename, refuses overwrite, and publishes completed package and plaintext
+output files from temporary files. Opening authenticates and validates the
+complete package before creating a final plaintext file. It rejects a symbolic
+link as the final output-directory component and creates a missing output
+directory privately on Unix. Key generation rejects equivalent destinations,
+requires existing parent directories, and publishes the public recipient
+before the private identity.
 
 ## Protected against
 
@@ -137,11 +140,38 @@ resistance to CPU, allocation, or repeated-input denial of service.
 
 ## Contact trust limitations
 
-The separate contact book stores normalized opaque public-key text, a SHA-256
-comparison fingerprint, and a manual local `verified` boolean in plaintext
-TOML. It is not integrated with package operations. Its fingerprint is not
-encryption, a signature, a certificate, or proof of identity, and the verified
-flag records only a local user decision.
+The separate `experimental-v1` contact book stores canonical age X25519
+recipients and optional full fingerprints binding local verification to the
+exact recipient. Import and load reject unsupported recipient types, malformed
+or non-canonical records, unknown fields, duplicate case-insensitive names,
+duplicate recipients, and malformed or mismatched verification fingerprints.
+Stored fingerprints and verification status are never trusted without
+recomputation.
+
+Verification requires comparison through an independent authenticated channel.
+It records a local decision about one exact recipient, not identity proof,
+proof of key control, delivery proof, or authorship proof. Short fingerprints
+are display-only. Contact names and fingerprints may appear in local CLI output
+or receipts but must never enter `.pqsend` package metadata.
+
+The store is plaintext local state used by `pack --to`. Endpoint or
+local-account compromise can modify recipients and matching verification
+bindings, causing future contact-selected packages to target an attacker key,
+replace executable behavior, or observe CLI output. An unverified override is
+a deliberate bypass of the local verification policy and provides no extra
+assurance. Unix config and store paths reject final-component symlinks and
+require private modes; atomic replacement avoids truncating the previous store
+before the new store is complete. Contact recipient imports require bounded
+regular files, and store type and privacy checks run before bounded store reads.
+The 16 KiB recipient-file, 1 MiB store, and 1,024-contact limits reduce but do
+not eliminate allocation or parsing denial of service. These checks do not
+eliminate filesystem race conditions against an attacker controlling the local
+account. Windows does not yet enforce equivalent ACL privacy and has
+platform-dependent replacement semantics.
+
+Contact selection is a CLI-only operation. The package core receives only an
+`AgeRecipient`; contact names, full or short fingerprints, and verification
+status are not included in the public envelope or encrypted manifest.
 
 ## Security language and review triggers
 
