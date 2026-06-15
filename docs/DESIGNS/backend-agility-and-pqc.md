@@ -1,5 +1,9 @@
 # Backend Agility and Post-quantum Evaluation
 
+> [!WARNING]
+> PQSend is experimental and unaudited. The current backend is X25519-only and
+> not post-quantum-secure. The pre-`v1.0.0` format is unstable.
+
 **Status:** future design note; no post-quantum backend is implemented or
 selected.
 

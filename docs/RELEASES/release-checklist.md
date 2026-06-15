@@ -1,5 +1,9 @@
 # Release Checklist
 
+> [!WARNING]
+> PQSend is experimental and unaudited. The current backend is X25519-only and
+> not post-quantum-secure. The pre-`v1.0.0` format is unstable.
+
 Use this checklist for every PQSend release. A release is not a claim of
 production readiness, post-quantum security, or external audit completion.
 
@@ -54,10 +58,14 @@ production readiness, post-quantum security, or external audit completion.
 Scope reviewed for the first experimental encrypted package alpha:
 
 - [x] age-backed X25519 adapter, fixed 20-byte public envelope, one-file
-  packages, encrypted internal manifest, explicit key files, `keygen`, `pack`,
-  `open`, `inspect`, and local security receipts documented
+  packages, encrypted internal manifest, explicit recipient files, contacts,
+  `keygen`, `pack`, `open`, safe public `inspect`, and local security receipts
+  documented
+- [x] format, security model, threat model, contacts, receipts, compatibility,
+  and initial experimental test vectors linked from the release notes
 - [x] unsupported features and security limitations documented
-- [x] networking and Wi-Fi transfer explicitly documented as out of scope
+- [x] networking, relay/server behavior, and cloud sync explicitly documented
+  as out of scope
 - [x] 64 MiB v0.1 file limit documented
 - [x] outer package filename leakage warning documented
 - [x] pre-v1.0 format instability documented
@@ -69,6 +77,8 @@ Validation results are recorded after the required commands pass:
 - [x] `cargo clippy --workspace --all-targets -- -D warnings`
 - [x] `cargo test --workspace`
 
-Publication remains a separate maintainer action. In particular, confirm the
-workspace version and create the `v0.1.0-alpha.1` tag only after reviewing the
-release commit.
+Publication remains a separate maintainer action. The existing
+`v0.1.0-alpha.1` tag points to an earlier commit that predates the documented
+release scope, and the workspace package version remains `0.0.0`. Resolve
+those publication/version mismatches before presenting tagged artifacts as
+this documented release.

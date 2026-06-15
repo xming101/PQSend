@@ -1,5 +1,9 @@
 # Future Design Notes
 
+> [!WARNING]
+> PQSend is experimental and unaudited. The current backend is X25519-only and
+> not post-quantum-secure. The pre-`v1.0.0` format is unstable.
+
 These documents collect questions and constraints for work that is not part of
 the current `.pqsend` format or Rust reference CLI.
 

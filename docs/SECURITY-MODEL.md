@@ -234,8 +234,9 @@ Any future format, mode, or backend requires reviewed definitions, compatible
 security and threat-model updates, and security-sensitive tests. Compatibility
 claims must follow the [compatibility rules](COMPATIBILITY.md) and be supported
 by reviewed valid and invalid [test vectors](../test-vectors/README.md). The
-current experimental format is unstable before `v1.0.0`, and no normative
-cross-implementation vector set has been published.
+current experimental format is unstable before `v1.0.0`. The published
+experimental `v0-alpha` vector set defines current reference behavior but is
+not a pre-v1 compatibility promise.
 
 See also the [canonical format specification](FORMAT.md), [local recipient
 trust model](CONTACTS.md), and [receipt model](RECEIPTS.md).
