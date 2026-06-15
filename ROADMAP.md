@@ -52,6 +52,7 @@ server, and chat are explicitly out of scope for `v0.1`.
 
 ## v0.4.0: Folder packages
 
+- reviewed [multi-file and folder package design](docs/DESIGNS/multi-file-packages.md)
 - encrypted folder structure and filenames
 - safe extraction of directory trees
 - duplicate, conflicting, and platform-specific path handling
