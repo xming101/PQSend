@@ -8,9 +8,33 @@
 This document explains the implemented security design and trust boundaries of
 PQSend. It describes design properties, not guarantees. See the
 [threat model](THREAT-MODEL.md) for explicit protections, assumptions, and
-limitations.
+limitations, the [format specification](FORMAT.md) for the canonical package
+bytes, and the [project README](../README.md) for the current project scope.
 
-## Design boundary
+## Security goals
+
+Within the assumptions and limitations in the [threat
+model](THREAT-MODEL.md), PQSend is designed to:
+
+- encrypt files locally before they enter a transfer channel
+- decrypt files locally after receipt
+- avoid giving the transfer channel plaintext access
+- hide the original filename from public package metadata
+- encrypt and authenticate the internal manifest with the file bytes
+- detect package tampering through backend authentication and inner
+  consistency checks
+- reject malformed, truncated, unsupported, oversized, or non-canonical
+  packages
+- reject unsafe restored filenames and prevent filename path traversal
+- keep recipient selection and trust decisions local
+- provide receipts that explain local security-relevant facts without
+  becoming package metadata
+
+These are scoped design goals. They do not imply endpoint security, recipient
+identity proof, sender authenticity, delivery proof, anonymity, or
+post-quantum security.
+
+## Format boundary
 
 PQSend is a local package and safety layer around an existing encryption
 backend. It does not provide a transfer service and does not require the
@@ -52,6 +76,18 @@ the matching private identity locally.
 Encryption does not hide transfer-channel metadata such as sender, recipient,
 timing, routing, total package size, or the outer package filename.
 
+### Fail-closed parsing
+
+The public envelope is visible and must be validated before its declared
+encrypted payload is processed. The encrypted payload protects and
+authenticates the internal manifest and exact file bytes. The package parser
+must fail closed: unknown identifiers, alternate encodings, invalid lengths,
+truncation, trailing bytes, malformed internal data, and failed validation are
+errors rather than recovery opportunities.
+
+Backend authentication of the complete encrypted payload must succeed before
+any plaintext filename or file bytes are trusted, returned, or published.
+
 ## Package metadata boundary
 
 ### Minimal public envelope
@@ -84,9 +120,9 @@ The outer `.pqsend` filename is chosen by the user or transfer system and is
 outside this protection. Naming the package after the original file reveals
 that name.
 
-## Cryptographic boundary
+## Backend model
 
-The current cryptographic backend is age-backed X25519. PQSend delegates
+The current backend is binary age v1 X25519. PQSend delegates
 recipient encryption, authenticated payload protection, binary age parsing,
 and key handling to the Rust `age` crate through a deliberately narrow
 adapter. The current adapter accepts binary age v1 encryption for exactly one
@@ -102,7 +138,12 @@ path. A future hybrid backend would require separate review, implementation,
 testing, and a defined backend identifier or format change. This architecture
 does not make the current X25519 backend post-quantum-secure.
 
-## Contact trust boundary
+## Recipient trust model
+
+An explicit recipient file is local input chosen by the sender. The reference
+CLI parses it as one canonical age X25519 recipient and does not consult the
+contact store or claim that the recipient has been verified. The user remains
+responsible for obtaining the intended recipient public key correctly.
 
 The contact trust store is local plaintext state. A contact maps a local alias
 to one canonical age X25519 recipient and may store a full fingerprint binding
@@ -116,12 +157,13 @@ the public envelope or encrypted internal manifest.
 Unverified contacts are blocked by default. `--allow-unverified` is an
 explicit one-command policy override. Verification requires an independent
 authenticated comparison of the full fingerprint. It is a local decision, not
-identity proof or proof of key control.
+identity proof, proof of key control, or a guarantee that either endpoint is
+secure.
 
 See [Contacts](CONTACTS.md) for the contact-store format and operational
 limitations.
 
-## Receipt boundary
+## Receipt model
 
 Security receipts are local user-facing command output. They summarize selected
 package-format facts, recipient source and verification outcomes, exact
@@ -166,3 +208,19 @@ PQSend's security depends on:
 Unknown bugs, dependency vulnerabilities, and future cryptographic breaks
 remain possible. The [threat model](THREAT-MODEL.md) lists these and other
 explicit non-protections.
+
+## Format evolution
+
+The public envelope carries an explicit package-format version, package mode,
+and backend ID. Readers must reject unsupported values rather than treating
+them as the current format or attempting fallback parsing.
+
+Any future format, mode, or backend requires reviewed definitions, compatible
+security and threat-model updates, and security-sensitive tests. Compatibility
+claims must follow the [compatibility rules](COMPATIBILITY.md) and be supported
+by reviewed valid and invalid [test vectors](../test-vectors/README.md). The
+current experimental format is unstable before `v1.0.0`, and no normative
+cross-implementation vector set has been published.
+
+See also the [canonical format specification](FORMAT.md), [local recipient
+trust model](CONTACTS.md), and [receipt model](RECEIPTS.md).
