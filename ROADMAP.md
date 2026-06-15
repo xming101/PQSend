@@ -76,6 +76,8 @@ server, and chat are explicitly out of scope for `v0.1`.
 
 ## v0.8.0: Backend agility and future-resistant evaluation
 
+- follow the reviewed
+  [backend-agility and future hybrid PQC design](docs/DESIGNS/backend-agility-and-pqc.md)
 - document and test backend migration behavior
 - evaluate a reviewed hybrid future-resistant backend
 - claim harvest-now-decrypt-later resistance only if supported by the selected
