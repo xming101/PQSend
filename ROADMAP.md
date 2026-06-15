@@ -67,6 +67,8 @@ GUI, networking, relay/server behavior, cloud sync, messaging, or chat.
 
 ## Later roadmap: Backend agility and post-quantum evaluation
 
+- follow the reviewed
+  [backend-agility and future hybrid PQC design](docs/DESIGNS/backend-agility-and-pqc.md)
 - document and test backend migration behavior
 - evaluate a reviewed hybrid future-resistant backend
 - claim harvest-now-decrypt-later resistance only if supported by the selected
