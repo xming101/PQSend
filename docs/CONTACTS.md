@@ -1,40 +1,89 @@
-# Contacts: Local Recipient Trust Store
+# Contacts: Local Recipient Trust
 
 > [!WARNING]
 > PQSend is experimental, unaudited, X25519-only, not post-quantum-secure, and
 > unstable before `v1.0.0`.
 
-PQSend contacts are a local recipient trust store. They are not a social
-address book, directory service, identity system, or source of package
-metadata. The store helps a local user reduce the risk of encrypting to the
-wrong recipient key.
+PQSend contacts belong to the Rust reference CLI's local recipient-trust
+workflow. They are local names for recipient public keys, local trust records,
+and a convenience for selecting a recipient when creating a package.
 
-Each contact maps one local convenience alias, such as `alice`, to one
-canonical age X25519 recipient. The alias has meaning only to the local user.
-It is not authenticated by PQSend and does not establish the recipient's
-real-world identity.
+Contacts are reference CLI metadata. They are not part of the `.pqsend`
+package format.
 
-The current contact backend is X25519-only and is not post-quantum-secure.
+## What contacts are
 
-## Package boundary
+Each contact maps one local convenience name, such as `alice`, to exactly one
+canonical age X25519 recipient public key. A contact may also contain a local
+verification binding for that exact recipient fingerprint.
 
-Contacts are resolved only by the CLI before package creation. For
-`pack --to <contact>`, the CLI loads and validates the contact, then supplies
-only the parsed age X25519 recipient to the package core.
+Contacts help a local user:
 
-Contact aliases and verification outcomes may appear in local security
-receipts. Canonical recipient strings and fingerprints may appear in explicit
-contact-command output, and full fingerprints appear in blocked
-unverified-contact errors, but they are omitted from successful pack receipts.
-They must not appear in the public envelope or encrypted metadata of a
-`.pqsend` package. Security receipts are command output; they are not embedded
-into the package.
+- give a recipient public key a memorable local name
+- record whether the full fingerprint for that exact key was compared
+- deliberately select a recipient with `pack --to <contact>`
+- block accidental use of an unverified contact by default
 
-## Fingerprints and verification
+The contact name has meaning only to the local user. PQSend does not
+authenticate it.
 
-A contact fingerprint is a local aid for comparing one canonical recipient
-key. The full fingerprint is computed from the exact canonical age X25519
-recipient and is authoritative for verification:
+## What contacts are not
+
+Contacts are not:
+
+- proof of a person's or organization's identity
+- a Web of Trust
+- a certificate authority or cryptographic certificate
+- an account system, social address book, or remote directory
+- automatic key discovery
+- embedded records in `.pqsend` packages
+
+PQSend does not implement networking, QR exchange, remote contact lookup, or
+automatic contact verification.
+
+## Current recipient type
+
+The current contact recipient type is one canonical age X25519 recipient.
+Contacts are X25519-only. The current recipient type is not post-quantum-secure.
+
+The contact workflow does not change package encryption behavior. After the CLI
+resolves a contact, it passes only the parsed age X25519 recipient to the
+package core.
+
+## Verification model
+
+The user must compare the full fingerprint through an independent
+authenticated channel. That channel must give the user a sound reason to
+believe they are communicating with the intended recipient and should be
+independent from the channel used to obtain the recipient key.
+
+The implemented `pqsend contact verify <name>` command displays the canonical
+recipient and full fingerprint, then requires exact entry of the full
+fingerprint. Successful verification stores a local binding to that exact
+recipient fingerprint. It is not a separate trusted boolean that remains valid
+for a different key.
+
+Verification means only:
+
+> The local user says they compared this exact full recipient fingerprint
+> through an independent authenticated channel.
+
+Verification does not prove:
+
+- identity
+- current or future control of the corresponding private key
+- delivery or receipt of a package
+- sender authorship or a signature
+- endpoint, local-account, or contact-store security
+
+If the stored recipient changes, its fingerprint changes and the previous
+verification binding is invalid. The new recipient must be independently
+compared and verified.
+
+## Fingerprints
+
+The full fingerprint is authoritative for verification and security decisions.
+It is computed from the exact canonical age X25519 recipient:
 
 ```text
 pqsend-contact-v1:hex(SHA-256(
@@ -42,66 +91,115 @@ pqsend-contact-v1:hex(SHA-256(
 ))
 ```
 
-The short fingerprint is only a compact display aid. It must not be used to
-verify a contact or make duplicate-recipient decisions.
+The short fingerprint is display-only. It must not be used for verification,
+recipient comparison, duplicate detection, or any other security decision.
 
-`pqsend contact verify <name>` displays the canonical recipient and full
-fingerprint, then requires an exact full-fingerprint confirmation.
-Verification records a local binding to that exact canonical recipient key,
-not a separate trusted boolean. Changing the recipient key changes the full
-fingerprint and invalidates the previous verification binding. A new key must
-be independently compared and verified.
+## Contact privacy and package boundary
 
-Before confirming verification, the local user must compare the full
-fingerprint through an independent authenticated channel. The comparison
-channel must be independent from the channel used to obtain the recipient key
-and must give the user a sound reason to believe they are communicating with
-the intended recipient.
+Contact state must remain local to the reference CLI:
 
-In PQSend, verification means only:
+- contact names must not enter public package metadata
+- contact fingerprints must not enter public package metadata
+- contact names and fingerprints should not enter the encrypted internal
+  manifest for v0.1
+- contact verification state must not enter the package
 
-> The local user says they compared the full fingerprint through an
-> independent authenticated channel.
+The current reference CLI keeps contact names, recipient strings,
+fingerprints, and verification state out of both the public envelope and the
+encrypted internal manifest.
 
-Verification is not:
+Local receipts may display contact context. A successful contact-backed pack
+receipt displays the local contact alias and verification outcome, but omits
+the recipient key and contact fingerprint. Explicit contact-command output may
+display recipient keys and fingerprints, and a blocked unverified-contact
+error displays the full fingerprint. Terminal logs and captured output are
+therefore local plaintext metadata that users must protect.
 
-- proof of the contact's real-world identity
-- proof of sender authorship or a signature
-- proof of delivery
-- proof that the recipient currently controls the private key
-- proof that the recipient will control or protect the key forever
-- proof that either endpoint or local account is uncompromised
+Receipts are local CLI output and are not embedded in or transmitted with a
+`.pqsend` package.
 
-Unverified contacts provide no recipient-key verification assurance.
-`pack --to <contact>` blocks them by default. The explicit
-`--allow-unverified` option bypasses that local policy for one command, reports
-the override in local output, and does not mark the contact as verified.
+## Unverified contacts
 
-## Local-store risks
+The implemented reference CLI blocks `pack --to <contact>` when the selected
+contact is unverified.
 
-The contact store is local plaintext state. An attacker who compromises the
-local account or contact store can replace recipient keys and their matching
-verification bindings, causing future contact-selected packages to be
-encrypted to an attacker-controlled key. On Unix, PQSend enforces private
-config-directory and store-file modes. Windows does not currently enforce
-equivalent ACL privacy. These checks and recipient-bound fingerprints do not
-protect against an attacker controlling the local account.
+The implemented `--allow-unverified` option is an explicit override for one
+pack operation only. It reports the override in local output and does not
+change the contact's stored verification state. A later pack to the same
+unverified contact is blocked again unless that operation also uses the
+override.
 
-Terminal output and receipts containing contact aliases or verification status,
-and explicit contact-command output containing canonical recipients or
-fingerprints, are local plaintext metadata. Users must protect terminal logs
-and other local records according to their privacy needs.
+## Contact-store risks
 
-## Experimental format and compatibility
+The contact store is local plaintext state. Local account compromise can
+modify contacts, and contact-store compromise can replace recipient keys and
+their matching verification bindings. This can cause future packages selected
+by contact name to be encrypted to an attacker-controlled key.
 
-The existing alpha contact-store format is `experimental-v1` and is unstable.
-There is no pre-`v1.0.0` compatibility promise. PQSend rejects old or unknown
-incompatible store formats rather than automatically migrating trust
-decisions. Incompatible stores may require contacts to be explicitly
-re-imported and independently re-verified.
+Verification is only as strong as both:
+
+- the local contact store and account remaining trustworthy
+- the user's independent authenticated fingerprint-comparison process
+
+On Unix, the reference CLI enforces private modes for the config directory and
+contact-store file. Windows does not currently enforce equivalent ACL privacy.
+These checks do not protect against an attacker who controls the local account.
+
+## Store compatibility
+
+The contact-store format is experimental and separate from the `.pqsend`
+package format. The current store format is `experimental-v1`, and there is no
+pre-`v1.0.0` compatibility promise.
+
+The reference CLI rejects old, unknown, malformed, or incompatible stores
+rather than automatically migrating trust decisions. Old stores may require
+contacts to be explicitly re-imported and independently re-verified.
 
 The current store accepts one canonical age X25519 recipient per contact.
-Contact aliases are unique ASCII-case-insensitively, and duplicate canonical
-recipients are rejected. See the [compatibility rules](COMPATIBILITY.md) and
-[threat model](THREAT-MODEL.md) for the implemented compatibility behavior and
-broader security limitations.
+Contact names are unique ASCII-case-insensitively, and duplicate canonical
+recipients are rejected.
+
+## Example workflow
+
+The commands in this workflow are implemented by the current Rust reference
+CLI. First initialize the local contact store if needed:
+
+```sh
+pqsend init
+```
+
+Add a local contact from a file containing exactly one age X25519 recipient:
+
+```sh
+pqsend contact add alice alice-recipient.txt
+```
+
+Show the authoritative full fingerprint and the display-only short
+fingerprint:
+
+```sh
+pqsend contact fingerprint alice
+```
+
+Compare the full fingerprint through an independent authenticated channel,
+then verify the exact full fingerprint interactively:
+
+```sh
+pqsend contact verify alice
+```
+
+Create one package for the verified contact:
+
+```sh
+pqsend pack report.pdf --to alice --out report.pqsend
+```
+
+Contact replacement, Web of Trust, QR exchange, networking, and automatic key
+discovery are not implemented.
+
+## Related documents
+
+- [Package format](FORMAT.md)
+- [Security model](SECURITY-MODEL.md)
+- [Threat model](THREAT-MODEL.md)
+- [Security receipts](RECEIPTS.md)
