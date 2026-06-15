@@ -5,7 +5,7 @@ use std::process::{Command, Output};
 #[cfg(unix)]
 use std::os::unix::fs::{symlink, PermissionsExt};
 
-use pqsend_core::MAX_FILE_BYTES;
+use pqsend_core::{MAX_FILE_BYTES, MAX_PACKAGE_BYTES};
 use sha2::{Digest, Sha256};
 use tempfile::TempDir;
 
@@ -71,6 +71,18 @@ fn open(package: &Path, identity: &Path, output_directory: &Path) -> Output {
         .arg("--out")
         .arg(output_directory);
     success(command)
+}
+
+fn inspect(package: &Path) -> Output {
+    let mut command = pqsend();
+    command.arg("inspect").arg(package);
+    success(command)
+}
+
+fn inspect_failure(package: &Path) -> Output {
+    let mut command = pqsend();
+    command.arg("inspect").arg(package);
+    failure(command)
 }
 
 fn receipt_value<'a>(stdout: &'a str, label: &str) -> &'a str {
@@ -424,16 +436,70 @@ fn inspect_does_not_show_original_filename() {
     let filename = "inspect-must-not-reveal-this.txt";
     let (_identity, _recipient, _input, package) =
         packaged_file(temporary.path(), "inspect-name", filename, b"body");
-    let mut command = pqsend();
-    command.arg("inspect").arg(package);
-
-    let output = success(command);
+    let output = inspect(&package);
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    assert!(stdout.contains("format: pqsend"));
+    assert!(stdout.contains("format: .pqsend"));
     assert!(stdout.contains("format version: 1"));
     assert!(stdout.contains("package mode: single file"));
     assert!(!stdout.contains(filename));
+}
+
+#[test]
+fn inspect_shows_safe_public_metadata_and_warnings() {
+    let temporary = TempDir::new().expect("temporary directory");
+    let (_identity, _recipient, _input, package) = packaged_file(
+        temporary.path(),
+        "inspect-public",
+        "private.txt",
+        b"private body",
+    );
+    let package_size = fs::metadata(&package).expect("package metadata").len();
+
+    let output = inspect(&package);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let encrypted_payload_len = package_size - 20;
+
+    for expected in [
+        "format: .pqsend",
+        "public envelope length: 20 bytes",
+        "public envelope parseable: yes",
+        "format version: 1",
+        "package mode: single file",
+        "backend ID: 1",
+        "backend label: age v1 X25519",
+        &format!("encrypted payload length: {encrypted_payload_len} bytes"),
+        &format!("total package size: {package_size} bytes"),
+        "package length matches declared payload length: yes",
+        "trailing bytes present: no",
+        "original filename encrypted: yes",
+        "internal manifest encrypted: yes",
+        "contents require decryption: yes",
+        "warning: current backend is X25519-only and not post-quantum-secure",
+        "warning: package size and outer filename remain visible",
+    ] {
+        assert!(
+            stdout.contains(expected),
+            "missing inspect field: {expected}"
+        );
+    }
+}
+
+#[test]
+fn inspect_does_not_show_file_contents() {
+    let temporary = TempDir::new().expect("temporary directory");
+    let contents = b"inspect-private-content-marker-58aa65a5";
+    let (_identity, _recipient, _input, package) = packaged_file(
+        temporary.path(),
+        "inspect-contents",
+        "private.txt",
+        contents,
+    );
+
+    let output = inspect(&package);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(!stdout.contains(String::from_utf8_lossy(contents).as_ref()));
 }
 
 #[test]
@@ -455,10 +521,7 @@ fn inspect_does_not_show_paths_or_key_material() {
         .lines()
         .find(|line| line.starts_with("age1"))
         .expect("recipient key");
-    let mut command = pqsend();
-    command.arg("inspect").arg(&package);
-
-    let output = success(command);
+    let output = inspect(&package);
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     assert!(!stdout.contains(&input.display().to_string()));
@@ -474,14 +537,113 @@ fn inspect_does_not_show_plaintext_file_hash() {
     let (_identity, _recipient, _input, package) =
         packaged_file(temporary.path(), "inspect-hash", "hash.txt", contents);
     let hash = format!("{:x}", Sha256::digest(contents));
-    let mut command = pqsend();
-    command.arg("inspect").arg(package);
-
-    let output = success(command);
+    let output = inspect(&package);
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     assert!(!stdout.to_ascii_lowercase().contains("sha"));
     assert!(!stdout.contains(&hash));
+}
+
+#[test]
+fn inspect_rejects_bad_magic() {
+    let temporary = TempDir::new().expect("temporary directory");
+    let (_identity, _recipient, _input, package) =
+        packaged_file(temporary.path(), "inspect-magic", "private.txt", b"body");
+    let mut package_bytes = fs::read(&package).expect("read package");
+    package_bytes[0] ^= 1;
+    fs::write(&package, package_bytes).expect("write bad magic");
+
+    let output = inspect_failure(&package);
+
+    assert!(String::from_utf8_lossy(&output.stderr).contains("invalid package magic"));
+}
+
+#[test]
+fn inspect_rejects_unsupported_public_identifiers() {
+    let temporary = TempDir::new().expect("temporary directory");
+    let (_identity, _recipient, _input, package) = packaged_file(
+        temporary.path(),
+        "inspect-identifiers",
+        "private.txt",
+        b"body",
+    );
+    let original = fs::read(&package).expect("read package");
+
+    for (index, value, expected) in [
+        (9, 2, "unsupported public format version identifier: 2"),
+        (10, 2, "unsupported public package mode identifier: 2"),
+        (11, 2, "unsupported public backend identifier: 2"),
+    ] {
+        let mut changed = original.clone();
+        changed[index] = value;
+        fs::write(&package, changed).expect("write unsupported identifier");
+
+        let output = inspect_failure(&package);
+
+        assert!(String::from_utf8_lossy(&output.stderr).contains(expected));
+    }
+}
+
+#[test]
+fn inspect_rejects_length_mismatch() {
+    let temporary = TempDir::new().expect("temporary directory");
+    let (_identity, _recipient, _input, package) =
+        packaged_file(temporary.path(), "inspect-length", "private.txt", b"body");
+    let mut package_bytes = fs::read(&package).expect("read package");
+    package_bytes.pop();
+    fs::write(&package, package_bytes).expect("write truncated package");
+
+    let output = inspect_failure(&package);
+
+    assert!(String::from_utf8_lossy(&output.stderr).contains("invalid package length"));
+}
+
+#[test]
+fn inspect_rejects_trailing_bytes() {
+    let temporary = TempDir::new().expect("temporary directory");
+    let (_identity, _recipient, _input, package) =
+        packaged_file(temporary.path(), "inspect-trailing", "private.txt", b"body");
+    let mut package_bytes = fs::read(&package).expect("read package");
+    package_bytes.push(0);
+    fs::write(&package, package_bytes).expect("write trailing byte");
+
+    let output = inspect_failure(&package);
+
+    assert!(String::from_utf8_lossy(&output.stderr).contains("invalid trailing data"));
+}
+
+#[test]
+fn inspect_rejects_trailing_data_beyond_package_size_limit() {
+    let temporary = TempDir::new().expect("temporary directory");
+    let (_identity, _recipient, _input, package) = packaged_file(
+        temporary.path(),
+        "inspect-large-trailing",
+        "private.txt",
+        b"body",
+    );
+    let package_file = File::options()
+        .write(true)
+        .open(&package)
+        .expect("open package");
+    package_file
+        .set_len(u64::try_from(MAX_PACKAGE_BYTES + 1).expect("package limit fits u64"))
+        .expect("append sparse trailing data");
+
+    let output = inspect_failure(&package);
+
+    assert!(String::from_utf8_lossy(&output.stderr).contains("invalid trailing data"));
+}
+
+#[test]
+fn inspect_does_not_require_private_key() {
+    let temporary = TempDir::new().expect("temporary directory");
+    let (identity, _recipient, _input, package) =
+        packaged_file(temporary.path(), "inspect-no-key", "private.txt", b"body");
+    fs::remove_file(identity).expect("remove private identity");
+
+    let output = inspect(&package);
+
+    assert!(String::from_utf8_lossy(&output.stdout).contains("public envelope parseable: yes"));
 }
 
 #[test]

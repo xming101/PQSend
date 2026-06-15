@@ -367,22 +367,52 @@ fn local_receipt_time() -> String {
 }
 
 fn inspect(package_path: &Path) -> Result<String, Box<dyn Error>> {
-    let package = read_regular_file_bounded(package_path, MAX_PACKAGE_BYTES, "package file")?;
-    let envelope = PublicEnvelope::decode(&package)?;
-    let encrypted_payload_len = usize::try_from(envelope.encrypted_payload_len())
-        .map_err(|_| PackageError::EncryptedPayloadTooLarge)?;
-    let expected_package_len = PUBLIC_ENVELOPE_LEN
-        .checked_add(encrypted_payload_len)
+    let (public_envelope, actual_package_len) = read_public_envelope(package_path)?;
+    let envelope = match PublicEnvelope::decode(&public_envelope) {
+        Ok(envelope) => envelope,
+        Err(PackageError::UnsupportedVersion) => {
+            let identifier = u16::from_be_bytes([public_envelope[8], public_envelope[9]]);
+            return Err(cli_error(&format!(
+                "unsupported public format version identifier: {identifier}"
+            )));
+        }
+        Err(PackageError::UnsupportedMode) => {
+            return Err(cli_error(&format!(
+                "unsupported public package mode identifier: {}",
+                public_envelope[10]
+            )));
+        }
+        Err(PackageError::UnsupportedBackend) => {
+            return Err(cli_error(&format!(
+                "unsupported public backend identifier: {}",
+                public_envelope[11]
+            )));
+        }
+        Err(error) => return Err(error.into()),
+    };
+    let public_envelope_len =
+        u64::try_from(PUBLIC_ENVELOPE_LEN).map_err(|_| cli_error("platform size overflow"))?;
+    let expected_package_len = public_envelope_len
+        .checked_add(envelope.encrypted_payload_len())
         .ok_or(PackageError::PackageLengthMismatch)?;
-    if package.len() != expected_package_len {
-        return Err(PackageError::PackageLengthMismatch.into());
+    if actual_package_len < expected_package_len {
+        return Err(cli_error(&format!(
+            "invalid package length: expected {expected_package_len} bytes from the declared encrypted payload length, found {actual_package_len}"
+        )));
+    }
+    if actual_package_len > expected_package_len {
+        return Err(cli_error(&format!(
+            "invalid trailing data: expected {expected_package_len} package bytes, found {actual_package_len}"
+        )));
     }
 
     Ok(format!(
-        "format: pqsend\nformat version: {}\npackage mode: single file\nbackend: age v1 X25519\nencrypted payload length: {}\ntotal package size: {}",
+        "format: .pqsend\npublic envelope length: {} bytes\npublic envelope parseable: yes\nformat version: {}\npackage mode: single file\nbackend ID: {}\nbackend label: age v1 X25519\nencrypted payload length: {} bytes\ntotal package size: {} bytes\npackage length matches declared payload length: yes\ntrailing bytes present: no\noriginal filename encrypted: yes\ninternal manifest encrypted: yes\ncontents require decryption: yes\nwarning: current backend is X25519-only and not post-quantum-secure\nwarning: package size and outer filename remain visible",
+        PUBLIC_ENVELOPE_LEN,
         envelope.version(),
+        envelope.backend(),
         envelope.encrypted_payload_len(),
-        package.len()
+        actual_package_len
     ))
 }
 
@@ -477,6 +507,33 @@ fn read_regular_file_bounded(
         )));
     }
     Ok(bytes)
+}
+
+fn read_public_envelope(path: &Path) -> Result<(Vec<u8>, u64), Box<dyn Error>> {
+    let metadata = fs::metadata(path)?;
+    if !metadata.is_file() {
+        return Err(cli_error("package file must be a regular file"));
+    }
+
+    let mut file = File::open(path)?;
+    let opened_metadata = file.metadata()?;
+    if !opened_metadata.is_file() {
+        return Err(cli_error("package file must be a regular file"));
+    }
+
+    let public_envelope_len =
+        u64::try_from(PUBLIC_ENVELOPE_LEN).map_err(|_| cli_error("platform size overflow"))?;
+    let mut bytes = Vec::with_capacity(PUBLIC_ENVELOPE_LEN);
+    (&mut file)
+        .take(public_envelope_len)
+        .read_to_end(&mut bytes)?;
+
+    let final_len = file.metadata()?.len();
+    if final_len != opened_metadata.len() {
+        return Err(cli_error("package file changed during inspection"));
+    }
+
+    Ok((bytes, final_len))
 }
 
 fn validate_existing_output_directory(path: &Path) -> Result<Option<PathBuf>, Box<dyn Error>> {

@@ -79,6 +79,14 @@ cargo run -p pqsend-cli -- pack report.pdf \
 cargo run -p pqsend-cli -- inspect pqsend-transfer-001.pqsend
 ```
 
+`inspect` needs no private identity. It validates only the fixed public
+envelope and declared package length, then reports safe public facts such as
+the format version, package mode, backend, encrypted payload length, and total
+package size. It does not decrypt or reveal the original filename, internal
+manifest, file hash, or contents. Package size and the outer `.pqsend`
+filename remain visible, and the current X25519-only backend is not
+post-quantum-secure.
+
 Open the package into an output directory:
 
 ```sh

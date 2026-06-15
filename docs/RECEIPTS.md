@@ -169,8 +169,12 @@ Warning: experimental, unaudited, unstable format
 `inspect` and receipts serve different purposes:
 
 - `inspect` parses only the public envelope and reports public package metadata:
-  format version, package mode, backend, encrypted payload length, and total
-  package size. It does not decrypt, authenticate, extract, or print a receipt.
+  fixed envelope length and parseability, format version, package mode, backend
+  ID and label, encrypted payload length, total package size, exact declared
+  length agreement, and absence of trailing bytes. It also states that hidden
+  fields remain encrypted and warns about the X25519-only backend and visible
+  outer size and filename. It does not decrypt, authenticate, extract, require
+  a private identity, or print a receipt.
 - receipts describe local action context after a successful `pack` or `open`,
   including recipient-selection context for packing and completed validation
   checks for opening.

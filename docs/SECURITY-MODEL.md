@@ -111,6 +111,21 @@ The SHA-256 value checks agreement between authenticated metadata and the file
 body. It is not a replacement for age authentication and is not an independent
 authenticity mechanism.
 
+### Safe public inspection
+
+`pqsend inspect` requires no private identity and parses only the fixed public
+envelope. It fails closed on bad magic, unsupported public identifiers,
+invalid declared package length, truncation, or trailing data. Successful
+inspection reports only public format and size facts plus explicit warnings
+that the filename and internal manifest remain encrypted, contents require
+decryption, the current X25519-only backend is not post-quantum-secure, and
+package size and the outer filename remain visible.
+
+Inspection does not decrypt or authenticate the encrypted payload and does not
+claim that a package will open successfully. It does not reveal encrypted
+internal-manifest fields, file contents, plaintext hashes, recipient or
+contact data, sender identity, or timestamps.
+
 ### Original filename
 
 The original filename is hidden from public package metadata because it exists
