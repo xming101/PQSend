@@ -61,9 +61,12 @@ GUI, networking, relay/server behavior, cloud sync, messaging, or chat.
 
 ## Later roadmap: Optional graphical interface
 
-- GUI built on the reviewed core package and contact behavior
+- follow the reviewed
+  [reference GUI design](docs/DESIGNS/reference-gui.md)
+- local-first GUI built on the reviewed core package and contact behavior
+- preserve the existing `.pqsend` format and security model
 - preserve safe defaults and explicit confirmation for destructive actions
-- no required server and no telemetry
+- no account system, cloud sync, required server, or telemetry
 
 ## Later roadmap: Backend agility and post-quantum evaluation
 
