@@ -94,6 +94,14 @@ Within the scope and assumptions above, PQSend is designed to address:
 These protections do not make the transfer channel trusted. A channel can
 still copy, delay, delete, replace, or refuse to deliver a package.
 
+Public inspection is limited to the fixed public envelope and exact outer
+length checks. It requires no private identity, does not decrypt or
+authenticate the encrypted payload, fails closed on unsupported identifiers
+and malformed outer framing, and does not expose encrypted manifest fields or
+plaintext contents. Successful inspection explicitly warns about visible
+package size and outer filenames and the current backend's lack of
+post-quantum security.
+
 ## Out-of-scope threats
 
 PQSend does not protect against:

@@ -269,13 +269,24 @@ authentication and every inner validation check succeeds.
 
 Public inspection may parse only the public envelope and verify that the
 complete package length exactly matches its declared encrypted payload length.
-It can report the format version, mode, backend, encrypted payload length, and
-total package size without a recipient identity.
+It can report the `.pqsend` format label, fixed public-envelope length,
+public-envelope parseability, format version, package mode, backend ID and
+label, encrypted payload length, total package size, exact package-length
+agreement, and absence of trailing bytes without a recipient identity.
+
+Inspection must fail closed on bad magic, unsupported public version, mode, or
+backend identifiers, invalid declared lengths, truncation, and trailing outer
+data. Unsupported identifiers may be reported as rejected public values, but
+inspection must not attempt fallback parsing.
 
 Public inspection does not authenticate or decrypt the age payload and must not
 claim that the package will open successfully. It must not expose the original
 filename, file contents, encrypted file hash, recipient key, local contact
-name, contact fingerprint, or contact verification status.
+name, contact fingerprint, contact verification status, sender identity, or
+encrypted internal-manifest fields. Inspection output warns that the original
+filename and internal manifest remain encrypted, contents require decryption,
+the current X25519-only backend is not post-quantum-secure, and package size
+and the outer filename remain visible.
 
 ## Metadata leakage
 
@@ -326,8 +337,10 @@ packages created by earlier alpha releases.
 
 Future framing, identifier, limit, or parsing changes require updates to this
 document, the compatibility and security documentation, and relevant tests.
-Compatibility claims require reviewed valid and invalid test vectors. No
-normative cross-implementation vector set has been published yet.
+Compatibility claims require reviewed valid and invalid test vectors. The
+initial experimental `v0-alpha` corpus defines current reference behavior for
+package-format version `1`; it may change before `v1.0.0` and does not imply
+pre-v1 stability.
 
 See the [compatibility rules](COMPATIBILITY.md) and
 [test-vector index](../test-vectors/README.md).
@@ -358,4 +371,5 @@ The reference implementation is in:
 
 Security-sensitive framing and parsing behavior is exercised by
 `crates/pqsend-core/tests/package_v01.rs` and
-`crates/pqsend-core/tests/age_backend.rs`.
+`crates/pqsend-core/tests/age_backend.rs`. The published experimental vector
+corpus is loaded by `crates/pqsend-core/tests/test_vectors.rs`.
