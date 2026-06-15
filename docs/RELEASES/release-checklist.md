@@ -8,8 +8,9 @@ production readiness, post-quantum security, or external audit completion.
 - [ ] Confirm the release contains only the intended milestone scope.
 - [ ] Confirm no low-level cryptographic primitives or custom cryptographic
   compositions were added.
-- [ ] Confirm `README.md`, `SPEC.md`, `THREAT_MODEL.md`, package-format
-  documentation, and CLI help match implemented behavior.
+- [ ] Confirm `README.md`, `docs/FORMAT.md`, `docs/SECURITY-MODEL.md`,
+  `docs/THREAT-MODEL.md`, `docs/COMPATIBILITY.md`, and CLI help match
+  implemented behavior.
 - [ ] Confirm public package metadata remains minimal and contains no plaintext
   filename.
 - [ ] Confirm extraction rejects unsafe filenames, prevents path traversal, and
@@ -21,14 +22,14 @@ production readiness, post-quantum security, or external audit completion.
 ## Release documentation
 
 - [ ] Add the release to `CHANGELOG.md`.
-- [ ] Add standalone release notes under `docs/releases/`.
+- [ ] Add standalone release notes under `docs/RELEASES/`.
 - [ ] State whether the release is experimental, unaudited, post-quantum
   secure, and format-compatible with future releases.
 - [ ] State the file-size limit and public metadata leakage.
 - [ ] Tell users not to name the outer package after the original file when
   they want to avoid filename leakage.
-- [ ] Confirm `SPEC.md` and `THREAT_MODEL.md` were updated for any behavior
-  change.
+- [ ] Confirm canonical format, security, threat-model, and compatibility
+  documentation was updated for any behavior change.
 
 ## Validation
 

@@ -1,7 +1,13 @@
 # Design Decisions
 
+> [!WARNING]
+> PQSend is experimental, unaudited, X25519-only, not post-quantum-secure, and
+> unstable before `v1.0.0`.
+
 This log records decisions that shape multiple parts of PQSend. It is not a
-substitute for `SPEC.md`, `SECURITY-MODEL.md`, or `THREAT-MODEL.md`.
+substitute for the canonical [format specification](FORMAT.md),
+[security model](SECURITY-MODEL.md), [threat model](THREAT-MODEL.md), or
+[compatibility rules](COMPATIBILITY.md).
 
 ## DD-001: Local-first portable packages
 
@@ -11,10 +17,10 @@ does not require or currently provide a network service.
 
 ## DD-002: A package layer, not stronger cryptography
 
-PQSend distinguishes itself from `age` through an opinionated, human-oriented
-package and safety layer, not by claiming stronger cryptography. The package
-layer provides encrypted internal metadata, contacts and verification status,
-security receipts, and safe defaults.
+PQSend's role is an opinionated, human-oriented package and safety layer. It is
+not an `age` replacement and does not claim stronger cryptography than its
+selected backend. The package layer provides encrypted internal metadata,
+contacts and verification status, security receipts, and safe defaults.
 
 ## DD-003: Established encryption backends
 

@@ -1,5 +1,10 @@
 # Experimental age Backend Adapter
 
+> [!WARNING]
+> PQSend is experimental and unaudited. This adapter is X25519-only, is not
+> post-quantum-secure, and belongs to an unstable pre-`v1.0.0` reference
+> implementation.
+
 PQSend currently uses the Rust [`age`](https://crates.io/crates/age) crate as
 its experimental `v0.1` encryption backend. The adapter lives in
 `pqsend-core` and provides only binary age v1 encryption to exactly one X25519

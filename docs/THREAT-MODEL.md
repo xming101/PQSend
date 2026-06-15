@@ -193,8 +193,9 @@ allocation, repeated-input, or storage denial of service.
 
 ## Review triggers
 
-Update this document, the [security model](SECURITY-MODEL.md), `SPEC.md`,
-package-format documentation, design decisions, and security-sensitive tests
-before changing package behavior, public metadata, limits, filename policy,
-extraction rules, cryptographic dependencies, contact trust behavior, receipts,
-or protected/not-protected claims.
+Update this document, the [security model](SECURITY-MODEL.md), canonical
+[format specification](FORMAT.md), [compatibility rules](COMPATIBILITY.md),
+design decisions, and security-sensitive tests before changing package
+behavior, public metadata, limits, filename policy, extraction rules,
+cryptographic dependencies, contact trust behavior, receipts, or
+protected/not-protected claims.

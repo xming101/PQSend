@@ -1,5 +1,9 @@
 # Security Receipts
 
+> [!WARNING]
+> PQSend is experimental, unaudited, X25519-only, not post-quantum-secure, and
+> unstable before `v1.0.0`.
+
 Security receipts are local, human-readable CLI output printed after successful
 `pack` and `open` operations. They explain selected facts about the
 experimental `.pqsend` package format, the completed operation, and local
