@@ -52,7 +52,7 @@ data.
 - a stable package format
 - an external security audit
 
-See [the full release notes](docs/releases/v0.1.0-alpha.1.md).
+See [the full release notes](docs/RELEASES/v0.1.0-alpha.1.md).
 
 [Unreleased]: https://github.com/xming101/PQSend/compare/v0.1.0-alpha.1...HEAD
 [v0.1.0-alpha.1]: https://github.com/xming101/PQSend/releases/tag/v0.1.0-alpha.1

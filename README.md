@@ -103,24 +103,25 @@ cargo run -p pqsend-cli -- pack report.pdf \
 been compared through an independent authenticated channel. Unverified
 contacts are blocked by default.
 
-## Format-first project structure
+## Repository responsibilities
 
-PQSend treats the package format and its security boundaries as the primary
-project:
+This repository is the official home of the experimental `.pqsend` package
+format and contains:
 
-- `docs/FORMAT.md` defines the canonical implementer-facing wire format.
-- `SPEC.md` records the draft specification and package requirements.
-- `pqsend-core` is the Rust reference implementation of package parsing,
-  creation, backend integration, and local contact state.
-- `pqsend-cli` exposes the current reference workflows and local receipts.
-- package, backend, and CLI tests cover canonical behavior and
-  security-sensitive failures.
-- compatibility policy, published cross-platform fixtures, and broader test
-  vectors are planned work before format stabilization.
+- the canonical implementer-facing format specification in
+  [`docs/FORMAT.md`](docs/FORMAT.md)
+- the security model, threat model, contacts model, receipts model, and
+  compatibility rules
+- the test-vector publication area and rules for valid and invalid vectors
+- `pqsend-core`, the Rust reference implementation of package parsing,
+  creation, backend integration, and local contact state
+- `pqsend-cli`, the Rust reference CLI for the current package workflows
+- security-sensitive package, backend, contact, and CLI tests
 
-Independent implementations should follow the format documentation and reject
-unsupported or non-canonical packages rather than relying on reference CLI
-behavior alone.
+[`SPEC.md`](SPEC.md) is retained only as a short compatibility pointer for old
+links. Independent implementations should follow the canonical format and
+compatibility documentation and reject unsupported or non-canonical packages
+rather than relying on reference CLI behavior alone.
 
 ## Security properties
 
@@ -172,8 +173,8 @@ PQSend is not:
 ## Roadmap
 
 Near-term work focuses on format and parser hardening, malformed-package and
-resource-limit testing, a documented compatibility and migration policy,
-broader cross-platform package test vectors, and independent review.
+resource-limit testing, compatibility and migration-policy hardening, broader
+cross-platform package test vectors, and independent review.
 
 Later milestones may evaluate folder and multiple-recipient package versions,
 optional authenticity features, backend agility, and a reviewed hybrid
@@ -185,22 +186,29 @@ See the [roadmap](ROADMAP.md) for milestone boundaries.
 
 ## Documentation
 
-- [Package format](docs/FORMAT.md)
-- [Security model](docs/SECURITY-MODEL.md)
-- [Threat model](docs/THREAT-MODEL.md)
-- [Local contacts and recipient trust](docs/CONTACTS.md)
-- [Local security receipts](docs/RECEIPTS.md)
-- [Roadmap](ROADMAP.md)
-- [Changelog](CHANGELOG.md)
+Start here, in this order:
 
-Dedicated compatibility documentation is planned in the
-[format and parser hardening milestone](ROADMAP.md#v030-format-and-parser-hardening).
+1. [Package format](docs/FORMAT.md)
+2. [Security model](docs/SECURITY-MODEL.md)
+3. [Threat model](docs/THREAT-MODEL.md)
+4. [Local contacts and recipient trust](docs/CONTACTS.md)
+5. [Local security receipts](docs/RECEIPTS.md)
+6. [Compatibility rules](docs/COMPATIBILITY.md)
+7. [Test vectors](test-vectors/README.md)
+8. [Roadmap](ROADMAP.md)
+9. [Changelog](CHANGELOG.md)
+
+The [documentation index](docs/README.md) also lists design decisions, future
+design notes, release records, implementation notes, and retained compatibility
+pointers.
 
 ## Contributing and security
 
 Do not invent cryptography or add behavior outside the relevant reviewed
 milestone. Behavior changes must include security-sensitive tests and matching
-updates to `SPEC.md` and `THREAT_MODEL.md`.
+updates to the canonical format, security, threat-model, compatibility, and
+design-decision documentation. Keep the top-level compatibility pointers
+accurate when their targets or summaries change.
 
 Before considering a change complete, run:
 

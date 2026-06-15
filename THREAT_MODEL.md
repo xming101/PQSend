@@ -27,5 +27,7 @@ See also:
 
 - [Security model](docs/SECURITY-MODEL.md)
 - [Package format](docs/FORMAT.md)
+- [Compatibility rules](docs/COMPATIBILITY.md)
 - [Contact trust store](docs/CONTACTS.md)
 - [Security receipts](docs/RECEIPTS.md)
+- [Test vectors](test-vectors/README.md)

@@ -2,10 +2,9 @@
 
 ## Project maturity
 
-PQSend is experimental, incomplete, and not ready for sensitive real-world
-data. The current repository contains an experimental binary age v1 X25519
-backend, strict v0.1 `.pqsend` package handling, and an explicit-key-file CLI,
-but no security guarantees are made for it.
+PQSend is an experimental encrypted package format and Rust reference CLI. It
+is incomplete, unaudited, X25519-only, not post-quantum-secure, and not ready
+for sensitive real-world data. No security guarantees are made for it.
 
 Pre-`v1.0.0` package formats and behaviors are unstable. Security claims must be
 based on implemented, tested, and reviewed behavior rather than roadmap goals.
@@ -42,5 +41,7 @@ contact channel without including vulnerability details.
 Use the security design issue template for proposals that alter trust
 assumptions, package metadata, cryptographic dependencies, key handling,
 receipts, or extraction behavior. Security-sensitive behavior requires tests
-and matching updates to `SPEC.md`, `docs/SECURITY-MODEL.md`,
-`docs/THREAT-MODEL.md`, and the top-level `THREAT_MODEL.md` summary.
+and matching updates to `docs/FORMAT.md`, `docs/SECURITY-MODEL.md`,
+`docs/THREAT-MODEL.md`, `docs/COMPATIBILITY.md`, and the relevant design
+decisions. Keep the top-level `SPEC.md` and `THREAT_MODEL.md` compatibility
+pointers accurate.

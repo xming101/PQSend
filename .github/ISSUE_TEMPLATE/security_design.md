@@ -39,4 +39,5 @@ List security-sensitive tests and test vectors.
 
 ## Documentation updates
 
-Describe required changes to `SPEC.md`, `THREAT_MODEL.md`, and design docs.
+Describe required changes to `docs/FORMAT.md`, `docs/SECURITY-MODEL.md`,
+`docs/THREAT-MODEL.md`, `docs/COMPATIBILITY.md`, and design docs.

@@ -1,9 +1,15 @@
 # PQSend Backlog
 
+> [!NOTE]
+> This is a retained planning record. The [roadmap](../ROADMAP.md) is the
+> current milestone authority, and the [documentation index](README.md) points
+> to current format, security, and compatibility behavior. Some issue ordering
+> and milestone labels below are historical.
+
 This backlog breaks the first PQSend milestones into GitHub issue-style tasks.
 Issues within a milestone are roughly dependency ordered. Every behavior change
-must include the corresponding `SPEC.md` and `THREAT_MODEL.md` updates before it
-is complete.
+must include the corresponding canonical format, security, threat-model, and
+compatibility documentation updates before it is complete.
 
 Pre-`v1.0.0` package formats are experimental and carry no compatibility
 promise. Work must use an established encryption backend rather than inventing
@@ -57,7 +63,7 @@ issues must follow.
 
 **Acceptance criteria**
 
-- [ ] `SPEC.md` defines the draft single-file, single-recipient package concept.
+- [ ] `FORMAT.md` defines the draft single-file, single-recipient package concept.
 - [ ] `THREAT_MODEL.md` states assets, assumptions, protections, limitations,
   and required review triggers.
 - [ ] Documentation explicitly rejects custom cryptography and unsupported
@@ -103,7 +109,7 @@ authenticated payload protection without custom cryptographic composition.
   upstream interoperability expectations.
 - [ ] Backend-required public recipient material and its metadata impact are
   documented.
-- [ ] `SPEC.md`, `THREAT_MODEL.md`, and the design-decision log reflect the
+- [ ] `FORMAT.md`, `THREAT_MODEL.md`, and the design-decision log reflect the
   selection before package code is merged.
 
 **Out of scope**
@@ -279,7 +285,7 @@ user-selected output directory.
   directory.
 - [ ] Security-sensitive tests cover Unix, Windows, and mixed-separator attack
   forms.
-- [ ] `SPEC.md` and `THREAT_MODEL.md` document the implemented filename policy.
+- [ ] `FORMAT.md` and `THREAT_MODEL.md` document the implemented filename policy.
 
 **Out of scope**
 
@@ -439,7 +445,7 @@ released.
 
 **Acceptance criteria**
 
-- [ ] `SPEC.md`, `THREAT_MODEL.md`, package-format notes, and CLI help match
+- [ ] `FORMAT.md`, `THREAT_MODEL.md`, package-format notes, and CLI help match
   implemented behavior.
 - [ ] Dependency review and test-vector results are recorded.
 - [ ] Formatting, linting, workspace tests, and security-sensitive tests pass.
@@ -466,7 +472,7 @@ filesystem or metadata protections.
   failure behavior are documented.
 - [ ] Private and public material have separate handling rules.
 - [x] Contact records contain only necessary local metadata.
-- [x] `SPEC.md` and `THREAT_MODEL.md` cover contact trust. Local identity
+- [x] `CONTACTS.md` and `THREAT_MODEL.md` cover contact trust. Local identity
   storage remains pending.
 
 **Out of scope**
@@ -573,7 +579,7 @@ keeping all names and structure encrypted.
 - [ ] Public metadata reveals neither folder names nor structure.
 - [ ] Symlinks, hard links, devices, sockets, and other special entries have
   explicit rejection behavior.
-- [ ] `SPEC.md` and `THREAT_MODEL.md` are updated before implementation.
+- [ ] `FORMAT.md` and `THREAT_MODEL.md` are updated before implementation.
 
 **Out of scope**
 
@@ -677,7 +683,7 @@ selected recipients without ambiguous selection or unsupported privacy claims.
 - [ ] Public metadata exposure from recipient material is analyzed and
   documented.
 - [ ] Downgrade and recipient-removal risks are considered.
-- [ ] `SPEC.md` and `THREAT_MODEL.md` are updated before implementation.
+- [ ] `FORMAT.md` and `THREAT_MODEL.md` are updated before implementation.
 
 **Out of scope**
 

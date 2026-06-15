@@ -2,10 +2,16 @@
 
 PQSend is being developed in small, reviewable milestones. Milestone boundaries
 are security boundaries: later features must not be pulled forward without an
-explicit design review and matching updates to `SPEC.md` and `THREAT_MODEL.md`.
+explicit design review and matching updates to the canonical
+[format](docs/FORMAT.md), [security model](docs/SECURITY-MODEL.md), and
+[threat model](docs/THREAT-MODEL.md).
 
 All pre-`v1.0.0` formats and behaviors are experimental and may change without
 backward compatibility.
+
+The current implementation is an unaudited, X25519-only Rust reference CLI and
+is not post-quantum-secure. Roadmap items are not current capabilities or
+security claims.
 
 ## v0.0.1: Repository skeleton
 
@@ -90,3 +96,7 @@ server, and chat are explicitly out of scope for `v0.1`.
 An optional relay service may be considered after local package workflows are
 mature, but PQSend will not require a server and any server must be unable to
 decrypt file contents. Chat is not planned before `v1.0.0`.
+
+Future-facing design notes are indexed in
+[`docs/DESIGNS/`](docs/DESIGNS/README.md). They describe review questions, not
+implemented features or commitments.

@@ -1,5 +1,9 @@
 # Contacts: Local Recipient Trust Store
 
+> [!WARNING]
+> PQSend is experimental, unaudited, X25519-only, not post-quantum-secure, and
+> unstable before `v1.0.0`.
+
 PQSend contacts are a local recipient trust store. They are not a social
 address book, directory service, identity system, or source of package
 metadata. The store helps a local user reduce the risk of encrypting to the
@@ -98,6 +102,6 @@ re-imported and independently re-verified.
 
 The current store accepts one canonical age X25519 recipient per contact.
 Contact aliases are unique ASCII-case-insensitively, and duplicate canonical
-recipients are rejected. See [the draft specification](../SPEC.md) and
-[threat model](THREAT-MODEL.md) for the normative implemented behavior and
+recipients are rejected. See the [compatibility rules](COMPATIBILITY.md) and
+[threat model](THREAT-MODEL.md) for the implemented compatibility behavior and
 broader security limitations.

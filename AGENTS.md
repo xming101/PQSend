@@ -15,7 +15,9 @@ These rules apply to all work in this repository.
 - Keep public package metadata minimal.
 - Do not make exaggerated or unsupported security claims.
 - Add tests for security-sensitive behavior.
-- Update `SPEC.md` and `THREAT_MODEL.md` whenever behavior changes.
+- Update `docs/FORMAT.md`, `docs/SECURITY-MODEL.md`, and
+  `docs/THREAT-MODEL.md` whenever behavior changes.
+- Keep `SPEC.md` and `THREAT_MODEL.md` compatibility pointers accurate.
 
 ## Completion checks
 

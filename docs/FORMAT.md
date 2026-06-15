@@ -1,9 +1,10 @@
 # PQSend Experimental Package Format
 
 > [!WARNING]
-> The `.pqsend` format is experimental, unstable before `v1.0.0`, and not
-> guaranteed to remain compatible between alpha releases. Implementations must
-> reject unsupported formats rather than attempting fallback or recovery
+> PQSend and the `.pqsend` format are experimental and unaudited. The current
+> format is X25519-only, not post-quantum-secure, unstable before `v1.0.0`, and
+> not guaranteed to remain compatible between alpha releases. Implementations
+> must reject unsupported formats rather than attempting fallback or recovery
 > parsing.
 
 This document is the implementer-facing description of the current `.pqsend`
@@ -299,3 +300,7 @@ The reference implementation is in:
 Security-sensitive framing and parsing behavior is exercised by
 `crates/pqsend-core/tests/package_v01.rs` and
 `crates/pqsend-core/tests/age_backend.rs`.
+
+See the [compatibility rules](COMPATIBILITY.md) and
+[test-vector index](../test-vectors/README.md) for compatibility policy and
+published-vector status.
