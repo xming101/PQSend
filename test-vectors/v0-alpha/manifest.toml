@@ -1,0 +1,278 @@
+# Experimental v0-alpha vector metadata.
+# Optional expected fields are omitted when they do not apply.
+
+[[vector]]
+name = "public-envelope-single-file-age-x25519"
+file = "valid/public-envelope-single-file-age-x25519.bin"
+category = "public-envelope"
+purpose = "Canonical deterministic public envelope for format version 1, single-file mode, age v1 X25519 backend, and a 42-byte payload."
+expected_result = "accept"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+vector_sha256 = "1e6e6b53b13be7dbbd9b30fc5b99a9f3c3ba1d497211a60c3d7d15427dd55e11"
+
+[[vector]]
+name = "public-envelope-bad-magic"
+file = "invalid/public-envelope-bad-magic.bin"
+category = "public-envelope"
+purpose = "Reject a public envelope whose magic differs from the canonical value."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "InvalidMagic"
+vector_sha256 = "8a3f163f121c12b7acf7e1534d7bc47d67b4f24daed1b51069a3a79ef83fbc31"
+
+[[vector]]
+name = "public-envelope-unsupported-version"
+file = "invalid/public-envelope-unsupported-version.bin"
+category = "public-envelope"
+purpose = "Reject unsupported public format version 2."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "UnsupportedVersion"
+vector_sha256 = "c68a13f929c382e44ddbcc1eba30d1fdb5a2f8608abab78241f6e2169648ab9a"
+
+[[vector]]
+name = "public-envelope-unsupported-mode"
+file = "invalid/public-envelope-unsupported-mode.bin"
+category = "public-envelope"
+purpose = "Reject unsupported public package mode 2."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "UnsupportedMode"
+vector_sha256 = "e3a1775a2d5aa2a023700d01aafdc6680a269f0d73a90dc5a309a004771c0692"
+
+[[vector]]
+name = "public-envelope-unsupported-backend"
+file = "invalid/public-envelope-unsupported-backend.bin"
+category = "public-envelope"
+purpose = "Reject unsupported public backend ID 2."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "UnsupportedBackend"
+vector_sha256 = "e7296e8321695a21753fa554bf3164805775e99c4b20939bccaa6797aaa2851b"
+
+[[vector]]
+name = "public-envelope-zero-payload-length"
+file = "invalid/public-envelope-zero-payload-length.bin"
+category = "public-envelope"
+purpose = "Reject a zero encrypted payload length."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "InvalidEncryptedPayloadLength"
+vector_sha256 = "9b21317afbe562e583f1577c2351d1b2ee6f1df9aa82b2c09e3997212f420633"
+
+[[vector]]
+name = "public-envelope-excessive-payload-length"
+file = "invalid/public-envelope-excessive-payload-length.bin"
+category = "public-envelope"
+purpose = "Reject an encrypted payload length above the format limit."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "EncryptedPayloadTooLarge"
+vector_sha256 = "a3db53aed6e786d4bc8b51e25acd7a2c44ce804501ee97f87bfec4a18a80d045"
+
+[[vector]]
+name = "inner-single-file"
+file = "valid/inner-single-file.bin"
+category = "inner-plaintext"
+purpose = "Canonical deterministic inner plaintext for one small file."
+expected_result = "accept"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_restored_filename = "vector.txt"
+expected_plaintext_sha256 = "44fca3925846fc6857229f4e3966e14fa7224389c8fb89e9b5fa7381617d8401"
+vector_sha256 = "931ec4d1cf2ffde170169b91ff4fbf4d9c16503147996a4121e17905ab70dbbc"
+
+[[vector]]
+name = "inner-bad-magic"
+file = "invalid/inner-bad-magic.bin"
+category = "inner-plaintext"
+purpose = "Reject a non-canonical inner magic."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "InvalidInnerMagic"
+vector_sha256 = "ff46de1ade58cababf44638af486ab474d0cb5a9fcf6a7da8392454b5e388b25"
+
+[[vector]]
+name = "inner-version-mismatch"
+file = "invalid/inner-version-mismatch.bin"
+category = "inner-plaintext"
+purpose = "Reject an authenticated inner version that differs from the public envelope."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "InnerVersionMismatch"
+vector_sha256 = "70f96863921216ab7f2b933bfb183b17804d53fc9ccf3dff73f97caa6c6bf624"
+
+[[vector]]
+name = "inner-filename-length-zero"
+file = "invalid/inner-filename-length-zero.bin"
+category = "inner-plaintext"
+purpose = "Reject an inner filename length of zero."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "InvalidFilename"
+vector_sha256 = "4bbe45819d92ac6f197475cb50910dcf85d457bfbc7f075aa7de185c3b6a886f"
+
+[[vector]]
+name = "inner-filename-too-long"
+file = "invalid/inner-filename-too-long.bin"
+category = "inner-plaintext"
+purpose = "Reject an inner filename length above 255 bytes."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "InvalidFilename"
+vector_sha256 = "433a3fb4f7efed5c6a26d66bc70ed43c102ca2ba0ccf8ff4c7feea3780467f39"
+
+[[vector]]
+name = "inner-unsafe-filename"
+file = "invalid/inner-unsafe-filename.bin"
+category = "inner-plaintext"
+purpose = "Reject an authenticated filename containing a path separator."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "InvalidFilename"
+vector_sha256 = "3f21097c2ff1cb72de1740f846bbf24ab39e82afc2e37ddad872159076e485b0"
+
+[[vector]]
+name = "inner-hash-mismatch"
+file = "invalid/inner-hash-mismatch.bin"
+category = "inner-plaintext"
+purpose = "Reject a file body whose SHA-256 does not match the authenticated inner hash."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "HashMismatch"
+vector_sha256 = "e97c12b31dec5a0ce2b8615fc3cc177a3a62235b3af8b136121b3af1f040839c"
+
+[[vector]]
+name = "inner-trailing-bytes"
+file = "invalid/inner-trailing-bytes.bin"
+category = "inner-plaintext"
+purpose = "Reject trailing bytes after the declared inner filename and file body."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = false
+expected_failure_reason = "InvalidInnerLength"
+vector_sha256 = "8c100cd171c859d92d1f6269710583d98a9e779db0345f60393c813eda2b223d"
+
+[[vector]]
+name = "package-small"
+file = "valid/package-small.pqsend"
+category = "end-to-end-package"
+purpose = "Small valid encrypted package generated with the public fixture key."
+expected_result = "accept"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = true
+expected_restored_filename = "small.txt"
+expected_plaintext_sha256 = "fbf299665d15f1dfa5aab3657b98dbdb1eef68ed29ba00852b30e92fc8a380d1"
+vector_sha256 = "2fa654f0445fe3042d0632d42eb2a3486ccc252a65f6eda9bbf7b2a3d90c6ca5"
+
+[[vector]]
+name = "package-empty-file"
+file = "valid/package-empty-file.pqsend"
+category = "end-to-end-package"
+purpose = "Valid encrypted package whose restored file body is empty."
+expected_result = "accept"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = true
+expected_restored_filename = "empty.txt"
+expected_plaintext_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+vector_sha256 = "61716c8e6d898bf4e643d3d86e4f6b778618ae158275f6953ab01270eda285c0"
+
+[[vector]]
+name = "package-filename-hidden"
+file = "valid/package-filename-hidden.pqsend"
+category = "end-to-end-package"
+purpose = "Valid encrypted package used to verify that the original filename is absent from public package bytes."
+expected_result = "accept"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = true
+expected_restored_filename = "private-fixture-name.txt"
+expected_plaintext_sha256 = "e9d93190e5a6a90eb0540dd6eb05ae0f01df2cd3826d76c39b845db9f8576c7b"
+vector_sha256 = "205b12918f653ea0e898f22b0a8d4291ec4495782661bc83b05b5558d686e792"
+
+[[vector]]
+name = "package-trailing-bytes"
+file = "invalid/package-trailing-bytes.pqsend"
+category = "public-envelope"
+purpose = "Reject trailing outer bytes after the declared encrypted payload."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = true
+expected_failure_reason = "PackageLengthMismatch"
+vector_sha256 = "b062b7ef2eb2c78df4328f8cb17a0821d292b9de3102f6ee1f59f349f3ac3b6c"
+
+[[vector]]
+name = "package-tampered"
+file = "invalid/package-tampered.pqsend"
+category = "end-to-end-package"
+purpose = "Reject a package whose encrypted payload has been tampered with."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = true
+expected_failure_reason = "Backend.InvalidCiphertext"
+vector_sha256 = "d0bcede4e36f2dc0849d48daa66d8e9225fe1ba52385a9e60aff4ed4cf584474"
+
+[[vector]]
+name = "package-truncated"
+file = "invalid/package-truncated.pqsend"
+category = "end-to-end-package"
+purpose = "Reject a package shorter than its declared encrypted payload length."
+expected_result = "reject"
+format_version = 1
+mode = 1
+backend = 1
+test_identity_included = true
+expected_failure_reason = "PackageLengthMismatch"
+vector_sha256 = "7789c64f3e0b39c177271ac3e6528b0e621c300853b292f00c22ceea26206e32"

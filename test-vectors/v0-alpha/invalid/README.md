@@ -1,6 +1,13 @@
-# Invalid Vectors
+# Invalid v0-alpha Vectors
 
-No reviewed invalid `.pqsend` package vectors have been published yet.
+These vectors are expected to be rejected by implementations supporting the
+named experimental v0-alpha behavior. They cover:
 
-Future files in this directory must document the intended rejection category
-without relying on permissive recovery parsing.
+- bad or unsupported public-envelope fields and invalid payload lengths
+- malformed authenticated inner plaintext, including unsafe filename, hash,
+  and trailing-data cases
+- trailing, tampered, and truncated encrypted packages
+
+Expected failure reasons and SHA-256 hashes of the exact vector bytes are
+recorded in [`../manifest.toml`](../manifest.toml). Implementations must reject
+these vectors without permissive recovery parsing.
