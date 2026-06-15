@@ -42,6 +42,7 @@ GUI, networking, relay/server behavior, cloud sync, messaging, or chat.
 
 ## Later roadmap: Folder and multi-file packages
 
+- reviewed [multi-file and folder package design](docs/DESIGNS/multi-file-packages.md)
 - encrypted folder structure and filenames
 - safe extraction of directory trees
 - duplicate, conflicting, and platform-specific path handling
