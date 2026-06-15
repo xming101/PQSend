@@ -62,9 +62,16 @@ The publication layout and current status of package vectors are documented in
 intended to be accepted only by implementations supporting the named
 experimental format. Published invalid vectors must be rejected.
 
-No normative cross-implementation vector set has been published yet. Until
-vectors are added and reviewed, the canonical format documentation and
-security-sensitive Rust tests remain the available compatibility evidence.
+The initial [`v0-alpha` vector set](../test-vectors/v0-alpha/README.md) defines
+current Rust reference behavior and experimental compatibility expectations
+for package-format version `1`. It includes deterministic public-envelope and
+inner-plaintext vectors plus fixed encrypted package snapshots. Encrypted
+snapshot bytes depend on encryption randomness, so fresh writers are expected
+to produce equivalent packages rather than byte-identical ciphertext.
+
+The vectors and their expectations may change incompatibly before `v1.0.0`.
+Included fixture identities are deliberately public and must never be used for
+real secrets.
 
 ## Stability target
 

@@ -337,8 +337,10 @@ packages created by earlier alpha releases.
 
 Future framing, identifier, limit, or parsing changes require updates to this
 document, the compatibility and security documentation, and relevant tests.
-Compatibility claims require reviewed valid and invalid test vectors. No
-normative cross-implementation vector set has been published yet.
+Compatibility claims require reviewed valid and invalid test vectors. The
+initial experimental `v0-alpha` corpus defines current reference behavior for
+package-format version `1`; it may change before `v1.0.0` and does not imply
+pre-v1 stability.
 
 See the [compatibility rules](COMPATIBILITY.md) and
 [test-vector index](../test-vectors/README.md).
@@ -369,4 +371,5 @@ The reference implementation is in:
 
 Security-sensitive framing and parsing behavior is exercised by
 `crates/pqsend-core/tests/package_v01.rs` and
-`crates/pqsend-core/tests/age_backend.rs`.
+`crates/pqsend-core/tests/age_backend.rs`. The published experimental vector
+corpus is loaded by `crates/pqsend-core/tests/test_vectors.rs`.
