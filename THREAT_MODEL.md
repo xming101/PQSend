@@ -16,9 +16,16 @@ package size or transfer metadata, provide anonymity or identity proof, prove
 authorship or delivery, or protect the current X25519 backend from quantum
 attacks.
 
+Local CLI receipts may expose package paths, package hashes, local receipt
+times, contact aliases and verification outcomes, and restored output paths in
+terminal logs. Pack receipts do not print contact fingerprints or recipient
+keys. Receipts are not package metadata, cryptographic proof, or cryptographic
+certificates and do not prove identity, authorship, delivery, or package
+creation time.
+
 See also:
 
 - [Security model](docs/SECURITY-MODEL.md)
 - [Package format](docs/FORMAT.md)
 - [Contact trust store](docs/CONTACTS.md)
-- [Security receipts](docs/security-receipts.md)
+- [Security receipts](docs/RECEIPTS.md)

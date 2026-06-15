@@ -266,13 +266,13 @@ fn verified_contact_packs_and_decrypts_with_local_contact_receipt() {
     let output = pack_to(&home, &input, "bob", &package, false);
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    assert!(stdout.contains("Recipient source: contact"));
-    assert!(stdout.contains("Contact name: Bob"));
+    assert!(stdout.contains("Action: package created"));
+    assert!(stdout.contains("Format: .pqsend"));
+    assert!(stdout.contains("Recipient source: local contact"));
+    assert!(stdout.contains("Contact alias: Bob"));
     assert!(stdout.contains("Contact verification: verified"));
-    assert!(stdout.contains(&format!(
-        "Short fingerprint: {}",
-        short_fingerprint(&recipient)
-    )));
+    assert!(!stdout.contains(&full_fingerprint(&recipient)));
+    assert!(!stdout.contains(&short_fingerprint(&recipient)));
     open(&home, &package, &identity, &opened);
     assert_eq!(
         fs::read(opened.join("private.txt")).expect("read opened file"),
@@ -323,14 +323,18 @@ fn unverified_contact_is_blocked_unless_explicitly_overridden() {
         .arg("--out")
         .arg(&explicit_package);
     let explicit_output = success(explicit);
-    assert!(String::from_utf8_lossy(&explicit_output.stdout)
-        .contains("Recipient source: explicit recipient file"));
+    let explicit_stdout = String::from_utf8_lossy(&explicit_output.stdout);
+    assert!(explicit_stdout.contains("Recipient source: explicit recipient file"));
+    assert!(explicit_stdout.contains("Contact verification: not applicable"));
 
     let override_output = pack_to(&home, &input, "Bob", &override_package, true);
     let override_stdout = String::from_utf8_lossy(&override_output.stdout);
-    assert!(override_stdout.contains("Contact verification: unverified; explicit override used"));
+    assert!(override_stdout.contains("Recipient source: local contact"));
+    assert!(override_stdout.contains("Contact verification: unverified override"));
+    assert!(!override_stdout.contains(&full_fingerprint(&recipient)));
+    assert!(!override_stdout.contains(&short_fingerprint(&recipient)));
     assert!(override_stdout
-        .contains("Warning: unverified contact override used for this operation only"));
+        .contains("WARNING: unverified contact override used for this operation only"));
     assert_eq!(
         fs::read(&store_path).expect("read store after override"),
         store_before_override
@@ -430,7 +434,17 @@ fn contact_metadata_is_absent_from_package_bytes_and_inspection() {
 
     let package_bytes = fs::read(&package).expect("read package");
     let inner_plaintext = decrypt_inner(&package_bytes, &identity);
-    for forbidden in [contact_name, full.as_str(), short.as_str()] {
+    for forbidden in [
+        contact_name,
+        full.as_str(),
+        short.as_str(),
+        "Security receipt (local CLI output only)",
+        "Local receipt time",
+        "Contact alias:",
+        "Contact verification:",
+        "Recipient full fingerprint:",
+        "Recipient verification status:",
+    ] {
         assert!(
             !package_bytes
                 .windows(forbidden.len())
@@ -453,6 +467,9 @@ fn contact_metadata_is_absent_from_package_bytes_and_inspection() {
     assert!(!inspect_stdout.contains(&full));
     assert!(!inspect_stdout.contains(&short));
     assert!(!inspect_stdout.contains("Contact verification"));
+    assert!(!inspect_stdout.contains("Recipient verification status"));
+    assert!(!inspect_stdout.contains("Security receipt"));
+    assert!(!inspect_stdout.contains("Local receipt time"));
     assert!(!inspect_stdout.contains(&recipient));
 }
 

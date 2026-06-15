@@ -5,6 +5,7 @@ use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use age::secrecy::{ExposeSecret, SecretString};
 use clap::{ArgGroup, Parser, Subcommand};
@@ -13,6 +14,7 @@ use pqsend_core::{
     create_package, open_package, AgeIdentity, AgeRecipient, Contact, ContactBook, PackageError,
     PublicEnvelope, VerifyResult, MAX_FILE_BYTES, MAX_PACKAGE_BYTES, PUBLIC_ENVELOPE_LEN,
 };
+use sha2::{Digest, Sha256};
 use tempfile::{Builder, NamedTempFile};
 
 const MAX_KEY_FILE_BYTES: usize = 16 * 1024;
@@ -237,11 +239,22 @@ fn pack(
     let file_bytes = read_regular_file_bounded(input, MAX_FILE_BYTES, "input file")?;
     let package = create_package(filename, &file_bytes, &recipient.age_recipient)?;
     write_new_file(output, &package, "package file")?;
+    let written_package = read_regular_file_bounded(output, MAX_PACKAGE_BYTES, "package file")?;
+    let details = package_receipt_details(&written_package)?;
 
     Ok(format!(
-        "Encrypted locally: yes\nOriginal filename hidden in package: yes\n{}\nBackend: age v1 X25519\nPost-quantum secure: no\nKnown leakage: package size, transfer timing, and outer package filename",
-        recipient.receipt
+        "Security receipt (local CLI output only)\nAction: package created\nFormat: .pqsend\nFormat version: {}\nPackage mode: single file\nPublic envelope: fixed 20-byte v0.1 envelope\nBackend: age v1 X25519\nPost-quantum secure: no\nOriginal filename hidden in package metadata: yes\nInternal manifest encrypted: yes\n{}\nPackage path: {}\nPackage SHA-256: {}\nLocal receipt time (Unix seconds; not package metadata): {}\nKnown public leakage: package size, transfer timing, outer package filename\nReminder: transfer channel does not need to be trusted with plaintext\nWarning: experimental, unaudited, unstable format",
+        details.format_version,
+        recipient.receipt,
+        output.display(),
+        details.sha256,
+        local_receipt_time(),
     ))
+}
+
+struct PackageReceiptDetails {
+    sha256: String,
+    format_version: u16,
 }
 
 struct ResolvedPackRecipient {
@@ -258,7 +271,8 @@ fn resolve_pack_recipient(
     match (recipient_file, contact_name) {
         (Some(recipient_file), None) if !allow_unverified => Ok(ResolvedPackRecipient {
             age_recipient: read_recipient(recipient_file)?,
-            receipt: "Recipient source: explicit recipient file".to_owned(),
+            receipt: "Recipient source: explicit recipient file\nContact verification: not applicable"
+                .to_owned(),
         }),
         (None, Some(contact_name)) => {
             let contact = contact_book(config_dir)?.contact(contact_name)?;
@@ -273,20 +287,19 @@ fn resolve_pack_recipient(
             let verification = if contact.is_verified() {
                 "verified"
             } else {
-                "unverified; explicit override used"
+                "unverified override"
             };
             let warning = if contact.is_verified() {
                 ""
             } else {
-                "\nWarning: unverified contact override used for this operation only"
+                "\nWARNING: unverified contact override used for this operation only"
             };
             Ok(ResolvedPackRecipient {
                 age_recipient: contact.age_recipient().clone(),
                 receipt: format!(
-                    "Recipient source: contact\nContact name: {}\nContact verification: {}\nShort fingerprint: {}{}",
+                    "Recipient source: local contact\nContact alias: {}\nContact verification: {}{}",
                     contact.name(),
                     verification,
-                    contact.short_fingerprint(),
                     warning
                 ),
             })
@@ -305,6 +318,7 @@ fn open(
     let existing_output_directory = validate_existing_output_directory(output_directory)?;
     let identity = read_identity(identity_file)?;
     let package = read_regular_file_bounded(package_path, MAX_PACKAGE_BYTES, "package file")?;
+    let details = package_receipt_details(&package)?;
     let opened = open_package(&package, &identity)?;
 
     let output_directory = match existing_output_directory {
@@ -316,9 +330,40 @@ fn open(
     write_new_file(&output_path, &opened.file_bytes, "output file")?;
 
     Ok(format!(
-        "Decryption succeeded: yes\nIntegrity verified: yes\nOriginal filename restored: yes\nOutput path: {}\nBackend: age v1 X25519\nPost-quantum secure: no",
-        output_path.display()
+        "Security receipt (local CLI output only)\nAction: package opened\nFormat: .pqsend\nFormat version: {}\nPackage mode: single file\nBackend: age v1 X25519\nPost-quantum secure: no\nDecryption succeeded: yes\nIntegrity verified by backend authentication: yes\nInner manifest validated: yes\nOriginal filename restored: yes\nOutput path: {}\nPackage path: {}\nPackage SHA-256: {}\nLocal receipt time (Unix seconds; not package metadata): {}\nSender identity and authorship verified: no; PQSend does not implement signatures\nWarning: experimental, unaudited, unstable format",
+        details.format_version,
+        output_path.display(),
+        package_path.display(),
+        details.sha256,
+        local_receipt_time(),
     ))
+}
+
+fn package_receipt_details(package: &[u8]) -> Result<PackageReceiptDetails, Box<dyn Error>> {
+    let envelope = PublicEnvelope::decode(package)?;
+    let encrypted_payload_len = usize::try_from(envelope.encrypted_payload_len())
+        .map_err(|_| PackageError::EncryptedPayloadTooLarge)?;
+    let expected_package_len = PUBLIC_ENVELOPE_LEN
+        .checked_add(encrypted_payload_len)
+        .ok_or(PackageError::PackageLengthMismatch)?;
+    if package.len() != expected_package_len {
+        return Err(PackageError::PackageLengthMismatch.into());
+    }
+
+    Ok(PackageReceiptDetails {
+        sha256: format!("{:x}", Sha256::digest(package)),
+        format_version: envelope.version(),
+    })
+}
+
+fn local_receipt_time() -> String {
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(duration) => format!("{}.{:09}", duration.as_secs(), duration.subsec_nanos()),
+        Err(error) => {
+            let duration = error.duration();
+            format!("-{}.{:09}", duration.as_secs(), duration.subsec_nanos())
+        }
+    }
 }
 
 fn inspect(package_path: &Path) -> Result<String, Box<dyn Error>> {

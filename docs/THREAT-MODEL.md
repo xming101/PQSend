@@ -139,9 +139,17 @@ not form an identity system or trusted directory.
   policy for one command.
 - Explicit recipient-file packing does not consult contact verification.
 
-Contact aliases, recipient strings, fingerprints, and verification status may
-appear in local terminal output and receipts. They are not included in the
+Contact aliases and verification outcomes may appear in local pack receipts.
+Recipient strings and fingerprints may appear in explicit contact-command
+output, and full fingerprints appear in blocked unverified-contact errors, but
+they are omitted from successful pack receipts. None are included in the
 public envelope or encrypted internal manifest.
+
+Receipts also expose the observed package path and SHA-256, a local receipt
+time, and, after opening, the restored output path. Terminal capture can retain
+those fields as local plaintext metadata. Receipt fields are not cryptographic
+proof or cryptographic certificates and do not establish package creation time,
+identity, authorship, or delivery.
 
 ## Package and metadata limits
 
