@@ -18,11 +18,13 @@ Contacts are resolved only by the CLI before package creation. For
 `pack --to <contact>`, the CLI loads and validates the contact, then supplies
 only the parsed age X25519 recipient to the package core.
 
-Contact aliases, canonical recipient strings, fingerprints, and verification
-status may appear in local terminal output and local security receipts. They
-must not appear in the public envelope or encrypted metadata of a `.pqsend`
-package. Security receipts are command output; they are not embedded into the
-package.
+Contact aliases and verification outcomes may appear in local security
+receipts. Canonical recipient strings and fingerprints may appear in explicit
+contact-command output, and full fingerprints appear in blocked
+unverified-contact errors, but they are omitted from successful pack receipts.
+They must not appear in the public envelope or encrypted metadata of a
+`.pqsend` package. Security receipts are command output; they are not embedded
+into the package.
 
 ## Fingerprints and verification
 
@@ -81,10 +83,10 @@ config-directory and store-file modes. Windows does not currently enforce
 equivalent ACL privacy. These checks and recipient-bound fingerprints do not
 protect against an attacker controlling the local account.
 
-Terminal output and receipts containing contact aliases, canonical recipients,
-fingerprints, or verification status are also local plaintext metadata. Users
-must protect terminal logs and other local records according to their privacy
-needs.
+Terminal output and receipts containing contact aliases or verification status,
+and explicit contact-command output containing canonical recipients or
+fingerprints, are local plaintext metadata. Users must protect terminal logs
+and other local records according to their privacy needs.
 
 ## Experimental format and compatibility
 

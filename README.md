@@ -1,6 +1,7 @@
 # PQSend
 
-PQSend is an experimental encrypted package format and reference CLI for private file delivery.
+PQSend is an experimental encrypted package format with a Rust CLI reference
+implementation for private file delivery.
 
 > [!WARNING]
 > PQSend is experimental and unaudited. It currently supports only age v1 with
@@ -123,8 +124,10 @@ signature, proof of delivery, or proof of key control.
 - sender identity, notes, and timestamps, which are not package fields
 
 Contact aliases and fingerprints are not placed anywhere in the package,
-including the encrypted manifest. They may appear in local terminal output and
-local receipts.
+including the encrypted manifest. Contact aliases and verification outcomes may
+appear in local pack receipts. Successful pack receipts omit fingerprints;
+fingerprints remain visible in explicit contact commands and the existing
+blocked-unverified-contact error.
 
 ### Still visible
 
@@ -151,8 +154,9 @@ validates the complete inner plaintext before publishing output, rejects unsafe
 filenames, prevents path traversal through the authenticated filename, and
 refuses implicit overwrite.
 
-Local security receipts summarize selected recipient and completed checks. They
-are command output only, are not embedded in packages, and are not signatures
+Local security receipts explain selected `.pqsend` package-format facts,
+recipient selection, and completed checks. They are command output only, are
+not embedded in packages, and are not signatures, cryptographic certificates,
 or external proof. Successful creation and opening receipts include the exact
 package SHA-256 and an explicitly local receipt time; neither proves identity,
 authorship, delivery, or package creation time.

@@ -149,11 +149,14 @@ The v0.1 CLI uses explicit key files and local contacts:
 Recipient and identity files must each contain exactly one unadorned age X25519
 key, with optional comments. SSH, plugin, passphrase, armor, and other key or
 ciphertext modes are unsupported. The CLI prints local security receipts to
-standard output after successful `pack` and `open` operations. Receipts include
-the observed package path and SHA-256, validated package format/mode/backend,
-and a local receipt time explicitly labeled as not package metadata. Opening
-also warns that sender identity and authorship are not verified. Receipts are
-not embedded in packages, and `inspect` does not print a receipt.
+standard output after successful `pack` and `open` operations. Receipts explain
+the `.pqsend` format version, single-file mode, age v1 X25519 backend,
+not-post-quantum-secure status, selected completed checks, the observed package
+path and SHA-256, and a local receipt time explicitly labeled as not package
+metadata. They warn that PQSend is experimental, unaudited, and uses an
+unstable format. Opening also warns that sender identity and authorship are not
+verified. Receipts are not cryptographic certificates, are not embedded in
+packages, and are not printed by `inspect`.
 
 ## Experimental local contact book
 
@@ -209,17 +212,19 @@ Verification requires comparison through an independent authenticated channel.
 It is not a signature, certificate, identity proof, proof of key control,
 delivery proof, or authorship proof. Local contact-store compromise can change
 recipients and verification bindings. Contact names and fingerprints may
-appear in local CLI output and receipts but must never be included in
-`.pqsend` package metadata.
+appear in explicit contact-command output and blocked unverified-contact
+errors. Contact aliases and verification outcomes may appear in successful
+local pack receipts. None of these values may be included in `.pqsend` package
+metadata.
 
 `pack --to <contact>` blocks an unverified contact by default and reports the
 contact name, full fingerprint, and verification instruction. The
 `--allow-unverified` flag permits an explicit one-command override, reports the
 override in local output, and does not alter stored verification. A successful
-contact pack receipt displays the contact alias, full and short fingerprints,
-verification status, and any explicit unverified override locally. None of
-those values, nor the recipient string, are supplied to package framing or the
-encrypted inner manifest.
+contact pack receipt displays the local contact source, contact alias,
+verification outcome, and any explicit unverified override. It does not print
+the contact fingerprint or recipient string. None of those values are supplied
+to package framing or the encrypted inner manifest.
 
 Writes use a completed same-directory temporary file and atomic rename without
 first truncating the existing store. On Unix, the final config directory and

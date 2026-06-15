@@ -243,12 +243,12 @@ fn pack(
     let details = package_receipt_details(&written_package)?;
 
     Ok(format!(
-        "Security receipt (local CLI output only)\nOperation: package creation\nPackage path: {}\nPackage SHA-256: {}\nLocal receipt time (Unix seconds; not package metadata): {}\nPackage format version: {}\nPackage mode: single file\nCrypto backend/mode: age v1 X25519\nPost-quantum status: no; current backend is X25519-only\nEncrypted locally: yes\nOriginal filename hidden from public package metadata: yes\nEncrypted internal manifest: yes\n{}\nKnown leakage: package size; transfer timing outside PQSend; outer package filename chosen by user",
+        "Security receipt (local CLI output only)\nAction: package created\nFormat: .pqsend\nFormat version: {}\nPackage mode: single file\nPublic envelope: fixed 20-byte v0.1 envelope\nBackend: age v1 X25519\nPost-quantum secure: no\nOriginal filename hidden in package metadata: yes\nInternal manifest encrypted: yes\n{}\nPackage path: {}\nPackage SHA-256: {}\nLocal receipt time (Unix seconds; not package metadata): {}\nKnown public leakage: package size, transfer timing, outer package filename\nReminder: transfer channel does not need to be trusted with plaintext\nWarning: experimental, unaudited, unstable format",
+        details.format_version,
+        recipient.receipt,
         output.display(),
         details.sha256,
         local_receipt_time(),
-        details.format_version,
-        recipient.receipt
     ))
 }
 
@@ -271,7 +271,8 @@ fn resolve_pack_recipient(
     match (recipient_file, contact_name) {
         (Some(recipient_file), None) if !allow_unverified => Ok(ResolvedPackRecipient {
             age_recipient: read_recipient(recipient_file)?,
-            receipt: "Recipient source: explicit recipient file".to_owned(),
+            receipt: "Recipient source: explicit recipient file\nContact verification: not applicable"
+                .to_owned(),
         }),
         (None, Some(contact_name)) => {
             let contact = contact_book(config_dir)?.contact(contact_name)?;
@@ -286,7 +287,7 @@ fn resolve_pack_recipient(
             let verification = if contact.is_verified() {
                 "verified"
             } else {
-                "unverified; explicit override used"
+                "unverified override"
             };
             let warning = if contact.is_verified() {
                 ""
@@ -296,10 +297,8 @@ fn resolve_pack_recipient(
             Ok(ResolvedPackRecipient {
                 age_recipient: contact.age_recipient().clone(),
                 receipt: format!(
-                    "Recipient source: contact alias\nContact alias: {}\nRecipient full fingerprint: {}\nRecipient short fingerprint: {}\nRecipient verification status: {}{}",
+                    "Recipient source: local contact\nContact alias: {}\nContact verification: {}{}",
                     contact.name(),
-                    contact.full_fingerprint(),
-                    contact.short_fingerprint(),
                     verification,
                     warning
                 ),
@@ -331,12 +330,12 @@ fn open(
     write_new_file(&output_path, &opened.file_bytes, "output file")?;
 
     Ok(format!(
-        "Security receipt (local CLI output only)\nOperation: open/decrypt\nPackage path: {}\nPackage SHA-256: {}\nLocal receipt time (Unix seconds; not package metadata): {}\nPackage format version: {}\nPackage mode: single file\nCrypto backend/mode: age v1 X25519\nPost-quantum status: no; current backend is X25519-only\nDecryption succeeded: yes\nIntegrity verified: yes\nOriginal filename restored: yes\nRestored output path: {}\nWARNING: sender identity and authorship are not verified; PQSend does not implement signatures",
+        "Security receipt (local CLI output only)\nAction: package opened\nFormat: .pqsend\nFormat version: {}\nPackage mode: single file\nBackend: age v1 X25519\nPost-quantum secure: no\nDecryption succeeded: yes\nIntegrity verified by backend authentication: yes\nInner manifest validated: yes\nOriginal filename restored: yes\nOutput path: {}\nPackage path: {}\nPackage SHA-256: {}\nLocal receipt time (Unix seconds; not package metadata): {}\nSender identity and authorship verified: no; PQSend does not implement signatures\nWarning: experimental, unaudited, unstable format",
+        details.format_version,
+        output_path.display(),
         package_path.display(),
         details.sha256,
         local_receipt_time(),
-        details.format_version,
-        output_path.display()
     ))
 }
 

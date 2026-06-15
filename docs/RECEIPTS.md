@@ -1,12 +1,15 @@
 # Security Receipts
 
 Security receipts are local, human-readable CLI output printed after successful
-`pack` and `open` operations. They summarize the package bytes and selected
-local decisions at the end of an operation.
+`pack` and `open` operations. They explain selected facts about the
+experimental `.pqsend` package format, the completed operation, and local
+recipient selection.
 
 Receipts are not cryptographic proofs. They are not signatures and do not prove
 identity, authorship, delivery, receipt, endpoint security, or when a package
-was created. Interpret them together with the [threat model](THREAT-MODEL.md).
+was created. They are not cryptographic certificates or a stable
+machine-readable API. Interpret them together with the [threat
+model](THREAT-MODEL.md).
 
 ## Storage boundary
 
@@ -16,10 +19,10 @@ package. `inspect` stays focused on safe public package metadata and does not
 print a receipt.
 
 Terminal capture, shell logging, or manually saved output can retain receipt
-fields as local plaintext metadata. Create receipts contain the package path
-and contact-backed receipts contain the local alias and fingerprints. Open
-receipts contain the restored output path and therefore the decrypted original
-filename.
+fields as local plaintext metadata. Create receipts contain the package path,
+and contact-backed receipts contain the local alias and verification outcome.
+Open receipts contain the restored output path and therefore the decrypted
+original filename.
 
 The receipt time is generated from the local system clock after the successful
 operation. It is labeled `Local receipt time (Unix seconds; not package
@@ -30,37 +33,48 @@ creation timestamp.
 
 A successful `pack` receipt includes:
 
-- operation: package creation
+- action: package created
+- `.pqsend` format, format version `1`, and single-file package mode
+- fixed 20-byte v0.1 public envelope
+- age v1 X25519 backend and explicit not-post-quantum-secure status
+- confirmation that the original filename is hidden in package metadata and
+  the internal manifest is encrypted
+- recipient source: explicit recipient file or local contact
+- contact verification: verified, unverified override, or not applicable
 - package path
 - SHA-256 of the completed package bytes, computed after writing
 - local receipt time, explicitly labeled as not package metadata
-- package format version and single-file mode
-- age v1 X25519 backend and explicit X25519-only, not-post-quantum status
-- whether the recipient source was an explicit recipient file or contact alias
-- for a contact, the local alias, full and short fingerprints, and local
-  verification status at creation time
+- for a local contact, its alias and verification outcome at creation time
 - a prominent warning when `--allow-unverified` was used
-- confirmation that the original filename is hidden from public package
-  metadata and the internal manifest is encrypted
-- known leakage: package size, transfer timing outside PQSend, and the outer
-  package filename chosen by the user
+- known public leakage: package size, transfer timing, and the outer package
+  filename
+- a reminder that the transfer channel does not need to be trusted with
+  plaintext
+- a warning that PQSend is experimental, unaudited, and uses an unstable
+  format
 
 Contact verification status records local contact-store state at creation time.
-It does not establish identity or key control. The full fingerprint remains the
-authoritative comparison value; the short fingerprint is display-only.
+It does not establish identity or key control. Pack receipts do not print
+contact fingerprints or recipient keys. Explicit contact commands such as
+`contact fingerprint` and `contact verify` are the intended way to display and
+compare full fingerprints.
 
 ## Package opening receipt
 
 A successful `open` receipt includes:
 
-- operation: open/decrypt
+- action: package opened
+- `.pqsend` format, format version `1`, and single-file package mode
+- age v1 X25519 backend and explicit not-post-quantum-secure status
+- successful decryption and integrity verification by backend authentication
+- validated inner manifest and restored original filename
+- restored output path
 - package path and SHA-256 of the opened package bytes
 - local receipt time, explicitly labeled as not package metadata
-- validated package format version, single-file mode, and age v1 X25519 backend
-- integrity verified after successful authenticated opening and inner checks
-- restored output path
 - a warning that sender identity and authorship are not verified because PQSend
   does not implement signatures
+- a warning that PQSend is experimental, unaudited, and uses an unstable
+  format
 
 ## Interpreting the package hash
 
