@@ -108,7 +108,7 @@ contacts are blocked by default.
 This repository is the official home of the experimental `.pqsend` package
 format and contains:
 
-- the canonical implementer-facing format specification in
+- the sole source of truth for the implemented package byte format in
   [`docs/FORMAT.md`](docs/FORMAT.md)
 - the security model, threat model, contacts model, receipts model, and
   compatibility rules
@@ -119,9 +119,10 @@ format and contains:
 - security-sensitive package, backend, contact, and CLI tests
 
 [`SPEC.md`](SPEC.md) is retained only as a short compatibility pointer for old
-links. Independent implementations should follow the canonical format and
-compatibility documentation and reject unsupported or non-canonical packages
-rather than relying on reference CLI behavior alone.
+links. Independent implementations should follow
+[`docs/FORMAT.md`](docs/FORMAT.md) and the compatibility documentation and
+reject unsupported or non-canonical packages rather than relying on reference
+CLI behavior alone.
 
 ## Security properties
 

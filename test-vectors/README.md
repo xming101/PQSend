@@ -1,7 +1,8 @@
 # `.pqsend` Test Vectors
 
 This directory is the publication home for `.pqsend` package compatibility and
-parser test vectors.
+parser test vectors. The package bytes and required parsing behavior are
+defined by the canonical [format specification](../docs/FORMAT.md).
 
 PQSend is experimental, unaudited, X25519-only, not post-quantum-secure, and
 unstable before `v1.0.0`. No normative cross-implementation vector set has

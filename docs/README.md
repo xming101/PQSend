@@ -11,8 +11,8 @@ compatibility rules, design record, and release records.
 
 Read the current project documentation in this order:
 
-1. [Package format](FORMAT.md) - canonical implementer-facing `.pqsend` wire
-   format and parsing rules
+1. [Package format](FORMAT.md) - sole source of truth for implemented
+   `.pqsend` package bytes and parsing rules
 2. [Security model](SECURITY-MODEL.md) - implemented trust and security
    boundaries
 3. [Threat model](THREAT-MODEL.md) - scoped protections, assumptions, and
@@ -43,7 +43,8 @@ Read the current project documentation in this order:
 
 ## Sources of truth
 
-- `FORMAT.md` is the only wire-format specification.
+- [`FORMAT.md`](FORMAT.md) is the sole source of truth for the implemented
+  package byte format.
 - `SECURITY-MODEL.md` and `THREAT-MODEL.md` define current security scope.
 - `CONTACTS.md` and `RECEIPTS.md` define their respective local models.
 - `COMPATIBILITY.md` defines current compatibility policy.

@@ -22,11 +22,12 @@ The current reader and writer support only:
 - backend ID `1`, containing one binary age v1 payload for exactly one X25519
   recipient
 
-Writers must emit the one canonical encoding defined by `FORMAT.md`. Readers
-must reject unknown identifiers, alternate encodings, malformed or
-non-canonical input, unsupported backend modes, truncation, and trailing data.
-Readers must not reinterpret unknown values as the current format or attempt
-fallback or recovery parsing.
+Writers must emit the one canonical encoding defined by
+[the format specification](FORMAT.md). Readers must reject unknown
+identifiers, alternate encodings, malformed or non-canonical input,
+unsupported backend modes, truncation, and trailing data. Readers must not
+reinterpret unknown values as the current format or attempt fallback or
+recovery parsing.
 
 There is no backward- or forward-compatibility promise before `v1.0.0`. A
 future release may require an explicit migration tool or may reject an earlier
