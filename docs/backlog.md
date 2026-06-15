@@ -1,5 +1,9 @@
 # PQSend Backlog
 
+> [!WARNING]
+> PQSend is experimental and unaudited. The current backend is X25519-only and
+> not post-quantum-secure. The pre-`v1.0.0` format is unstable.
+
 > [!NOTE]
 > This is a retained planning record. The [roadmap](../ROADMAP.md) is the
 > current milestone authority, and the [documentation index](README.md) points

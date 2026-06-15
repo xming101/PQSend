@@ -1,5 +1,9 @@
 # Valid v0-alpha Vectors
 
+> [!WARNING]
+> PQSend is experimental and unaudited. The current backend is X25519-only and
+> not post-quantum-secure. The pre-`v1.0.0` format is unstable.
+
 These vectors are expected to be accepted by implementations supporting the
 named experimental v0-alpha behavior:
 

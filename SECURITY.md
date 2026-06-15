@@ -2,9 +2,10 @@
 
 ## Project maturity
 
-PQSend is an experimental encrypted package format and Rust reference CLI. It
-is incomplete, unaudited, X25519-only, not post-quantum-secure, and not ready
-for sensitive real-world data. No security guarantees are made for it.
+PQSend is an experimental `.pqsend` encrypted package format with a Rust
+reference CLI for private file delivery. It is incomplete, unaudited,
+X25519-only, not post-quantum-secure, and not ready for sensitive real-world
+data. No security guarantees are made for it.
 
 Pre-`v1.0.0` package formats and behaviors are unstable. Security claims must be
 based on implemented, tested, and reviewed behavior rather than roadmap goals.

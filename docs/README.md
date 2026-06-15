@@ -1,8 +1,9 @@
 # PQSend Documentation
 
-PQSend is an experimental encrypted package format and Rust reference CLI for
-private file delivery. The current implementation and format are unaudited,
-X25519-only, not post-quantum-secure, and unstable before `v1.0.0`.
+PQSend is an experimental `.pqsend` encrypted package format with a Rust
+reference CLI for private file delivery. The current implementation and format
+are unaudited, X25519-only, not post-quantum-secure, and unstable before
+`v1.0.0`.
 
 This directory is the documentation home for the format, security boundaries,
 compatibility rules, design record, and release records.

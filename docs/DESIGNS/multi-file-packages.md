@@ -1,5 +1,9 @@
 # Multi-file Packages
 
+> [!WARNING]
+> PQSend is experimental and unaudited. The current backend is X25519-only and
+> not post-quantum-secure. The pre-`v1.0.0` format is unstable.
+
 **Status:** future design note; not implemented or supported.
 
 The current `.pqsend` format contains exactly one file and stores only one

@@ -1,5 +1,9 @@
 # Reference GUI
 
+> [!WARNING]
+> PQSend is experimental and unaudited. The current backend is X25519-only and
+> not post-quantum-secure. The pre-`v1.0.0` format is unstable.
+
 **Status:** future design note; no GUI is implemented or supported.
 
 PQSend is currently an experimental package format with a Rust reference CLI.

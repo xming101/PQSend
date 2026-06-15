@@ -1,5 +1,9 @@
 # Release Records
 
+> [!WARNING]
+> PQSend is experimental and unaudited. The current backend is X25519-only and
+> not post-quantum-secure. The pre-`v1.0.0` format is unstable.
+
 This directory contains standalone PQSend release notes and the release
 checklist.
 
