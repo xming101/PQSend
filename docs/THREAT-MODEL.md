@@ -8,7 +8,9 @@
 This document describes what the implemented PQSend alpha is designed to
 protect and what remains outside its protection. These are scoped design
 claims, not absolute guarantees. See the [security model](SECURITY-MODEL.md)
-for the design and trust boundaries behind them.
+for the design and trust boundaries behind them, the [format
+specification](FORMAT.md) for the canonical package bytes, and the [project
+README](../README.md) for the current project scope.
 
 ## Scope
 
@@ -47,62 +49,68 @@ The model considers:
 The model assumes the sender and recipient endpoints are not compromised while
 PQSend operates.
 
-## Trust assumptions
+## Assumptions
 
 PQSend assumes:
 
 - sender and recipient machines, local accounts, and the running PQSend binary
   are trustworthy during use
-- users protect private identity keys, local contact state, backups, terminal
-  logs, and decrypted output
+- users protect their private identity keys, local contact state, backups,
+  terminal logs, and decrypted output
+- recipient public keys are obtained correctly before use, whether supplied
+  through an explicit recipient file or selected from a local contact
 - users independently compare the authoritative full contact fingerprint
   before recording verification
-- the Rust `age` backend, SHA-256 implementation, and other dependencies work
-  as documented
+- the Rust `age` backend behaves correctly, and the SHA-256 implementation and
+  other dependencies work as documented
 - the operating system random source, memory protections, and filesystem
-  behavior work correctly
+  operations behave as expected
 
 PQSend avoids custom cryptography. The current backend delegates recipient
 encryption, authenticated payload protection, binary age parsing, and key
 handling to the Rust `age` crate.
 
-## Protected against
+## In-scope threats
 
-Within the scope and assumptions above, PQSend is designed to protect against:
+Within the scope and assumptions above, PQSend is designed to address:
 
-- a cloud, email, messaging, or storage provider reading file contents from a
-  correctly created package without the recipient's private identity key
-- passive observers reading file contents from package bytes without the
-  recipient's private identity key
-- accidental package tampering, corruption, or truncation being accepted as a
-  valid package
-- revealing the original filename through public package metadata
-- accidental encryption to an unverified contact when the default contact
-  policy blocks it
-- malformed, wrong-key, tampered, truncated, unsupported-mode, or
-  multiple-recipient age payloads returning partial plaintext
-- malformed public or internal framing being accepted
-- unsafe decrypted filenames, including path traversal separators and reserved
-  device names, being accepted for extraction
+- an untrusted transfer channel or passive package holder attempting to read
+  file contents without the recipient's private identity key
+- accidental plaintext original-filename leakage inside the package bytes
+- a tampered or corrupted package being accepted as valid
+- a truncated package being accepted or partially opened
+- use of the wrong private key returning trusted or partial plaintext
+- malformed parser input, unsupported identifiers, alternate encodings, or
+  trailing data being accepted
+- a restored filename causing path traversal or selecting a path outside the
+  chosen output directory
+- unsafe decrypted filenames, including reserved device names, being accepted
+  for extraction
+- accidental encryption to an unverified local contact when the default
+  contact policy blocks it
 - accidental overwrite of existing key, package, or extracted output files
 - failed decryption or validation publishing a final plaintext output file
 
 These protections do not make the transfer channel trusted. A channel can
 still copy, delay, delete, replace, or refuse to deliver a package.
 
-## Not protected against
+## Out-of-scope threats
 
 PQSend does not protect against:
 
-- malware or compromise on the sender or recipient machine
-- a compromised, copied, substituted, or poorly protected private identity key
-- a compromised local contact store or local account
-- a recipient intentionally leaking plaintext after decryption
-- a user choosing a revealing outer `.pqsend` package filename
-- exact package size and approximate plaintext-size leakage
-- transfer timing, sender, recipient, routing, and other channel metadata
-- command-line history, terminal logs, or process inspection revealing local
-  aliases, filenames, paths, or key-file locations
+- a compromised sender or recipient endpoint
+- a stolen, copied, substituted, compromised, or poorly protected private key
+- a malicious recipient retaining or disclosing plaintext after decryption
+- local malware
+- compromise of the local contact store or local account
+- traffic analysis, including transfer timing, sender, recipient, routing, and
+  other channel metadata
+- exact package-size and approximate plaintext-size leakage
+- leakage caused by a revealing outer `.pqsend` package filename
+- shell history, terminal logs, or process inspection revealing local aliases,
+  filenames, paths, or key-file locations
+- a quantum attacker against current X25519 packages
+- legal compulsion
 - sender anonymity
 - authorship proof or signatures
 - delivery proof, read receipts, or availability
@@ -111,7 +119,6 @@ PQSend does not protect against:
 - deletion, replay, denial of service, or all resource-exhaustion attacks
 - unknown bugs or vulnerabilities in PQSend or its dependencies
 - unknown future cryptographic breaks
-- quantum attacks against X25519 in the current backend
 - filesystem replacement races involving trusted output-directory ancestors
 - guaranteed erasure of plaintext from memory, swap, crash dumps, temporary
   storage, filesystem blocks, backups, or debugging tools
@@ -119,6 +126,18 @@ PQSend does not protect against:
 The current backend is X25519-only. The crypto-agile architecture provides a
 future post-quantum migration path, but no future hybrid backend is currently
 implemented or supported.
+
+## Current limitations
+
+- PQSend and the `.pqsend` package format are experimental and unaudited.
+- The current backend is X25519-only and is not post-quantum-secure.
+- The package format and compatibility policy are unstable before `v1.0.0`.
+- Conservative file, plaintext, encrypted-payload, and package-size limits
+  bound normal parser allocation and work but do not prevent all
+  resource-exhaustion attacks.
+- Contact verification is local recipient-key comparison through an
+  independent authenticated channel. It is not identity proof, proof of key
+  control, or protection against contact-store compromise.
 
 ## Contact-specific risks
 
@@ -199,3 +218,6 @@ design decisions, and security-sensitive tests before changing package
 behavior, public metadata, limits, filename policy, extraction rules,
 cryptographic dependencies, contact trust behavior, receipts, or
 protected/not-protected claims.
+
+See also [local contacts and recipient trust](CONTACTS.md), [local security
+receipts](RECEIPTS.md), and the [test-vector index](../test-vectors/README.md).
